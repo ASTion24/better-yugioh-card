@@ -712,11 +712,12 @@ with sync_playwright() as playwright:
     first_hand_card.get_by_title("锁定卡片").click()
     locked_name = first_hand_card.locator("> span").inner_text()
     playtest_page.get_by_title("保留锁定卡并重抽其余卡片").click()
-    assert (
-        playtest_page.locator(".opening-hand article").first
-        .locator("> span")
-        .inner_text()
-        == locked_name
+    playtest_page.wait_for_function(
+        """expected => document.querySelector(
+            '.opening-hand article > span'
+        )?.textContent === expected""",
+        arg=locked_name,
+        timeout=30_000,
     )
     assert playtest_page.get_by_role(
         "button",
