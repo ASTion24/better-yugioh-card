@@ -385,6 +385,21 @@ with sync_playwright() as playwright:
         }""",
         timeout=30_000,
     )
+    page.wait_for_function(
+        """() => {
+            const images = [...document.querySelectorAll(
+                '.deck-card-visual > img'
+            )];
+            return images.length > 0 && images.every(image =>
+                image.src.includes('/ygoimg/sc/') &&
+                !image.src.includes('!thumb2') &&
+                image.complete &&
+                image.naturalWidth >= 680
+            );
+        }""",
+        timeout=120_000,
+    )
+    assert page.locator(".card-miniature").count() == 0
     page.get_by_role("button", name="检查卡组").click()
     page.wait_for_function(
         "() => document.querySelector('.deck-message')?.textContent"
@@ -700,6 +715,21 @@ with sync_playwright() as playwright:
         }""",
         timeout=120_000,
     )
+    playtest_page.wait_for_function(
+        """() => {
+            const images = [...document.querySelectorAll(
+                '.role-card-grid .card-select > img'
+            )];
+            return images.length > 0 && images.every(image =>
+                image.src.includes('/ygoimg/sc/') &&
+                !image.src.includes('!thumb2') &&
+                image.complete &&
+                image.naturalWidth >= 680
+            );
+        }""",
+        timeout=120_000,
+    )
+    assert playtest_page.locator(".card-miniature").count() == 0
 
     role_cards = playtest_page.locator(".role-card-grid article")
     starter_role = playtest_page.locator(".role-actions button").filter(

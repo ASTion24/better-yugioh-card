@@ -198,11 +198,10 @@
                   type="button"
                   @click="applyDatabaseResult(result)"
                 >
-                  <CardMiniature
+                  <CardThumbnail
                     :card-id="getDatabaseCardId(result)"
-                    :resolved-card="databaseResolvedMap.get(
-                      getDatabaseCardId(result),
-                    )"
+                    quality="medium"
+                    language="sc"
                     alt=""
                   />
                   <span>
@@ -624,7 +623,7 @@ import {
   watch,
 } from 'vue';
 import { YugiohCard } from 'yugioh-card/src/yugioh-card/index';
-import CardMiniature from './CardMiniature.vue';
+import CardThumbnail from './CardThumbnail.vue';
 import ImageCropper from './ImageCropper.vue';
 import ProjectBar from './ProjectBar.vue';
 import { CARD_RESOURCE_PATH } from '@/config/card-resources';
@@ -812,7 +811,6 @@ const renderError = ref('');
 const cropSource = ref('');
 const databaseQuery = ref('');
 const databaseResults = ref([]);
-const databaseResolvedMap = ref(new Map());
 const databaseSearching = ref(false);
 const databaseError = ref('');
 const databaseNotice = ref('');
@@ -1106,12 +1104,6 @@ const searchDatabase = async () => {
       return;
     }
     databaseResults.value = results.slice(0, 8);
-    const resolvedResults = await Promise.all(
-      databaseResults.value.map(result => resolveSearchResult(result)),
-    );
-    databaseResolvedMap.value = new Map(
-      resolvedResults.map(card => [card.artworkId, card]),
-    );
     if (!databaseResults.value.length) {
       databaseError.value = `未找到“${keyword}”`;
     }

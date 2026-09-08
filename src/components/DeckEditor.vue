@@ -81,9 +81,10 @@
         type="button"
         @click="addSearchResult(result)"
       >
-        <CardMiniature
+        <CardThumbnail
           :card-id="getCardArtworkId(result)"
-          :resolved-card="resolvedCardMap.get(getCardArtworkId(result))"
+          quality="medium"
+          language="sc"
           alt=""
         />
         <span>
@@ -116,10 +117,11 @@
           :aria-label="`查看 ${cardDisplayName(card.id)}`"
           @click="selectedCardId = card.id"
         >
-          <CardMiniature
+          <CardThumbnail
             :card-id="card.id"
             :custom-card="getCustomCard(customCards, card.id)"
-            :resolved-card="card.resolved"
+            quality="medium"
+            language="sc"
             :alt="cardDisplayName(card.id)"
           />
           <span class="card-count-badge">×{{ card.count }}</span>
@@ -213,7 +215,6 @@
 <script setup>
 import { Icon } from '@iconify/vue';
 import { computed, ref, watch } from 'vue';
-import CardMiniature from '@/components/CardMiniature.vue';
 import CardThumbnail from '@/components/CardThumbnail.vue';
 import { resolveCard, resolveSearchResult } from '@/features/cards/card-service';
 import {
@@ -681,7 +682,7 @@ const dropOnSection = targetSection => {
   background: #e9e7e1;
 }
 
-.deck-search-results :deep(.card-miniature) {
+.deck-search-results :deep(.card-thumbnail-state) {
   width: 30px;
   height: 43px;
 }
@@ -785,7 +786,7 @@ const dropOnSection = targetSection => {
   object-fit: fill;
 }
 
-.deck-card-visual > :deep(.card-miniature) {
+.deck-card-visual > :deep(.card-thumbnail-state) {
   width: 100%;
   height: 100%;
 }

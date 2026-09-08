@@ -3,6 +3,8 @@
     v-if="resolvedSource && !failed"
     :src="resolvedSource"
     :alt="alt"
+    loading="lazy"
+    decoding="async"
     @load="loading = false"
     @error="handleError"
   >
@@ -40,7 +42,7 @@ const props = defineProps({
   },
   quality: {
     type: String,
-    default: 'thumbnail',
+    default: 'medium',
     validator: value => ['thumbnail', 'medium'].includes(value),
   },
   language: {

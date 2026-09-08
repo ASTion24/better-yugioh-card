@@ -57,9 +57,10 @@
             :class="{ selected: selected?.artworkId === card.artworkId }"
           >
             <button class="catalog-image" type="button" @click="selected = card">
-              <CardMiniature
+              <CardThumbnail
                 :card-id="card.artworkId"
-                :resolved-card="card"
+                quality="medium"
+                language="sc"
                 :alt="card.name"
               />
               <span v-if="card.prerelease" class="catalog-badge">先行</span>
@@ -129,7 +130,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { Icon } from '@iconify/vue';
-import CardMiniature from '@/components/CardMiniature.vue';
 import CardThumbnail from '@/components/CardThumbnail.vue';
 import {
   appendBatchCards,
@@ -454,7 +454,7 @@ onMounted(async () => {
   object-fit: fill;
 }
 
-.catalog-image > :deep(.card-miniature) {
+.catalog-image > :deep(.card-thumbnail-state) {
   width: 100%;
   height: 100%;
 }

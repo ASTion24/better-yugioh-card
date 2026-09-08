@@ -382,9 +382,10 @@
                         type="button"
                         @click="selectCandidate(item, candidate.raw)"
                       >
-                        <CardMiniature
+                        <CardThumbnail
                           :card-id="candidate.id"
-                          :resolved-card="candidate.resolved"
+                          quality="medium"
+                          language="sc"
                           alt=""
                         />
                         <span>
@@ -488,7 +489,7 @@ import {
   onBeforeUnmount,
   ref,
 } from 'vue';
-import CardMiniature from './CardMiniature.vue';
+import CardThumbnail from './CardThumbnail.vue';
 import {
   resolveCard,
   resolveSearchResult,
@@ -1026,14 +1027,11 @@ const searchItem = async item => {
   item.error = '';
   try {
     const results = await searchCardDatabase(query);
-    item.candidates = await Promise.all(
-      results.slice(0, 5).map(async raw => ({
-        id: getCardArtworkId(raw),
-        name: getCardDisplayName(raw) || getCardArtworkId(raw),
-        raw,
-        resolved: await resolveSearchResult(raw),
-      })),
-    );
+    item.candidates = results.slice(0, 5).map(raw => ({
+      id: getCardArtworkId(raw),
+      name: getCardDisplayName(raw) || getCardArtworkId(raw),
+      raw,
+    }));
     if (!item.candidates.length) {
       item.error = '没有找到匹配卡片';
     }
@@ -1950,7 +1948,7 @@ defineExpose({
   object-fit: cover;
 }
 
-.candidate-list :deep(.card-miniature) {
+.candidate-list :deep(.card-thumbnail-state) {
   width: 26px;
   height: 38px;
 }

@@ -22,10 +22,11 @@
 
     <div v-if="entries.length" class="queue-list">
       <article v-for="(entry, index) in entries" :key="entry.id">
-        <CardMiniature
+        <CardThumbnail
           :card-id="entry.id"
           :custom-card="getCustomCard(customCards, entry.id)"
-          :resolved-card="resolvedCards.get(String(entry.id))"
+          quality="medium"
+          language="sc"
           :alt="cardName(entry.id)"
         />
         <span class="queue-identity">
@@ -83,7 +84,7 @@
 <script setup>
 import { Icon } from '@iconify/vue';
 import { computed, ref, watch } from 'vue';
-import CardMiniature from './CardMiniature.vue';
+import CardThumbnail from './CardThumbnail.vue';
 import { resolveCard } from '@/features/cards/card-service';
 import { getCustomCard } from '@/features/cards/custom-card';
 
@@ -107,7 +108,6 @@ defineEmits([
 ]);
 
 const names = ref(new Map());
-const resolvedCards = ref(new Map());
 const loadingIds = new Set();
 const totalCount = computed(() =>
   props.entries.reduce((total, entry) => total + entry.count, 0));
@@ -125,14 +125,12 @@ const cardNumber = id => {
 const loadName = async id => {
   const normalizedId = String(id);
   if (getCustomCard(props.customCards, normalizedId) ||
-    resolvedCards.value.has(normalizedId) ||
+    names.value.has(normalizedId) ||
     loadingIds.has(normalizedId)) return;
   loadingIds.add(normalizedId);
   try {
     const card = await resolveCard(normalizedId);
     names.value = new Map(names.value).set(normalizedId, card.name);
-    resolvedCards.value = new Map(resolvedCards.value)
-      .set(normalizedId, card);
   } catch {
     names.value = new Map(names.value).set(normalizedId, '名称暂不可用');
   } finally {
@@ -220,8 +218,7 @@ watch(
 }
 
 .queue-list article > img,
-.queue-list article > :deep(.card-thumbnail-state),
-.queue-list article > :deep(.card-miniature) {
+.queue-list article > :deep(.card-thumbnail-state) {
   width: 28px;
   height: 41px;
   object-fit: fill;

@@ -185,10 +185,11 @@
                 :aria-label="cardRoleActionLabel(card)"
                 @click="handleRoleCardClick(card.id, index, $event)"
               >
-                <CardMiniature
+                <CardThumbnail
                   :card-id="card.id"
                   :custom-card="getCustomCard(customCards, card.id)"
-                  :resolved-card="cardInfoMap.get(card.id)"
+                  quality="medium"
+                  language="sc"
                   :alt="card.name"
                 />
                 <div
@@ -745,7 +746,6 @@ import {
   ref,
   watch,
 } from 'vue';
-import CardMiniature from '@/components/CardMiniature.vue';
 import CardThumbnail from '@/components/CardThumbnail.vue';
 import DeckAnalysisPanel from '@/components/DeckAnalysisPanel.vue';
 import ProjectBar from '@/components/ProjectBar.vue';
@@ -2155,7 +2155,7 @@ input {
 }
 
 .card-select > :deep(img),
-.card-select > :deep(.card-miniature) {
+.card-select > :deep(.card-thumbnail-state) {
   width: 100%;
   height: 100%;
   display: block;
