@@ -8,8 +8,8 @@
       <a class="lab-brand" href="../">
         <span>YG</span>
         <div>
-          <h1>试手与概率实验室</h1>
-          <p>DRAW LAB · MAIN DECK</p>
+          <h1>对局实验室</h1>
+          <p>DUEL LAB · MAIN DECK</p>
         </div>
       </a>
       <strong>{{ mainDeck.length }} 张主卡组</strong>

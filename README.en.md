@@ -36,8 +36,8 @@ default.
 | Single-card DIY studio | Database completion, high-resolution rendering, artwork cropping, and PNG export |
 | Card library | On-demand card search with deck insertion and editable custom-card drafts |
 | Deck print workspace | Turn YDK into an editable deck and A4 PDF; quick images are preview-only, while print outputs always use high-resolution rendering |
-| Card and deck image recognition | Upload or capture single/multiple cards, review results, and export or continue editing a standard deck |
-| Playtest lab | Roles, exact odds, custom goals, failure diagnosis, Side plans, and trial history |
+| Image recognition | Upload or capture single/multiple cards, review results, and export or continue editing a standard deck |
+| Duel lab | Roles, exact odds, custom goals, failure diagnosis, Side plans, and trial history |
 | Batch production | CSV/JSON import, quality audit, bulk styles, production packages, and print handoff |
 
 Each deck can be saved, duplicated, imported, and exported independently. The

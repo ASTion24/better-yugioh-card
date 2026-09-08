@@ -20,7 +20,7 @@
       <div class="deck-export-actions">
         <button
           type="button"
-          title="打开试手与概率实验室"
+          title="打开对局实验室"
           @click="$emit('playtest')"
         >
           <Icon icon="ri:shuffle-line" />

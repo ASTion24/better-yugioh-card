@@ -7,8 +7,17 @@
       </a>
       <div class="launcher-status">
         <span>{{ decks.length }} 套本地卡组</span>
-        <i />
-        <span>本地存储</span>
+        <a
+          class="github-star"
+          href="https://github.com/ASTion24/better-yugioh-card"
+          target="_blank"
+          rel="noreferrer"
+          title="在 GitHub 上 Star"
+          aria-label="在 GitHub 上 Star Better YGO"
+        >
+          <Icon :icon="starLine" />
+          <span>Star</span>
+        </a>
       </div>
     </header>
 
@@ -28,7 +37,7 @@
         <div class="launch-copy">
           <header class="launch-heading">
             <div>
-              <span>本地卡片与构筑工具</span>
+              <span>卡片与构筑工具</span>
               <h1>Better YGO</h1>
             </div>
           </header>
@@ -209,6 +218,7 @@ import linkM from '@iconify-icons/ri/link-m';
 import searchLine from '@iconify-icons/ri/search-line';
 import shuffleLine from '@iconify-icons/ri/shuffle-line';
 import stackLine from '@iconify-icons/ri/stack-line';
+import starLine from '@iconify-icons/ri/star-line';
 import uploadCloud2Line from '@iconify-icons/ri/upload-cloud-2-line';
 import { computed, onMounted, ref } from 'vue';
 import accesscodeTalkerHero from '@/assets/image/accesscode-talker.jpg';
@@ -238,7 +248,7 @@ const workspaces = [
   },
   {
     key: 'recognize',
-    name: '卡牌卡组图像识别',
+    name: '图像识别',
     href: './recognize/',
     icon: imageCircleAiLine,
   },
@@ -250,7 +260,7 @@ const workspaces = [
   },
   {
     key: 'playtest',
-    name: '试手实验室',
+    name: '对局实验室',
     href: './playtest/',
     icon: shuffleLine,
   },
@@ -576,16 +586,35 @@ onMounted(async () => {
 .launcher-status {
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 10px;
   color: var(--muted);
   font-size: 12px;
 }
 
-.launcher-status i {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #75a593;
+.github-star {
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  background: var(--paper);
+  font-weight: 650;
+  text-decoration: none;
+  transition: border-color 160ms ease, color 160ms ease,
+    background-color 160ms ease;
+}
+
+.github-star:hover {
+  border-color: var(--ink);
+  color: white;
+  background: var(--ink);
+}
+
+.github-star svg {
+  font-size: 16px;
 }
 
 main {
@@ -1215,9 +1244,8 @@ footer {
     font-size: 14px;
   }
 
-  .launcher-status span:last-child,
-  .launcher-status i {
-    display: none;
+  .launcher-status {
+    gap: 8px;
   }
 
   main {

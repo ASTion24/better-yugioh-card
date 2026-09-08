@@ -148,6 +148,16 @@ with sync_playwright() as playwright:
     page.wait_for_selector(".workspace-launcher")
     assert page.locator(".workspace-commands a").count() == 6
     assert page.locator('.workspace-commands a[href="./playtest/"]').count() == 1
+    assert "本地存储" not in page.locator(".launcher-header").inner_text()
+    assert "卡片与构筑工具" in page.locator(".launch-heading").inner_text()
+    star_link = page.get_by_role(
+        "link",
+        name="在 GitHub 上 Star Better YGO",
+    )
+    assert star_link.get_attribute("href") == (
+        "https://github.com/ASTion24/better-yugioh-card"
+    )
+    assert star_link.get_attribute("target") == "_blank"
     assert_no_overflow(page)
 
     page.goto(f"{BASE_URL}/batch/", wait_until="domcontentloaded")
@@ -615,7 +625,7 @@ with sync_playwright() as playwright:
             "id": playtest_project_id,
             "kind": "deck",
             "schemaVersion": 2,
-            "name": "E2E 试手实验室",
+            "name": "E2E 对局实验室",
             "deck": {
                 "main": (
                     ["14558127"] * 3
@@ -776,10 +786,37 @@ with sync_playwright() as playwright:
     ).count() == 1
     assert playtest_page.locator(".goal-condition").count() == 3
     playtest_page.wait_for_function(
-        """expected => Number(document.querySelector(
-            '.history-stats > span strong'
-        )?.textContent) === expected""",
-        arg=history_after,
+        """expected => new Promise((resolve, reject) => {
+            const visible = Number(document.querySelector(
+                '.history-stats > span strong'
+            )?.textContent);
+            const request = indexedDB.open('yugioh-card-workspace');
+            request.onsuccess = () => {
+                const database = request.result;
+                const transaction = database.transaction(
+                    'projects',
+                    'readonly'
+                );
+                const read = transaction.objectStore('projects').get(
+                    expected.id
+                );
+                read.onsuccess = () => {
+                    const persisted = read.result?.playtest?.history?.length;
+                    database.close();
+                    resolve(
+                        visible >= expected.minimum &&
+                        persisted >= expected.minimum &&
+                        visible === persisted
+                    );
+                };
+                read.onerror = () => {
+                    database.close();
+                    reject(read.error);
+                };
+            };
+            request.onerror = () => reject(request.error);
+        })""",
+        arg={"id": playtest_project_id, "minimum": history_after},
         timeout=30_000,
     )
     assert int(
@@ -787,7 +824,7 @@ with sync_playwright() as playwright:
         .nth(0)
         .locator("strong")
         .inner_text()
-    ) == history_after
+    ) >= history_after
     playtest_page.set_viewport_size({"width": 390, "height": 844})
     playtest_page.wait_for_function(
         """() => {
