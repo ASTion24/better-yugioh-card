@@ -191,6 +191,19 @@
                   :resolved-card="cardInfoMap.get(card.id)"
                   :alt="card.name"
                 />
+                <div
+                  v-if="rolesForCard(card.id).length"
+                  class="card-role-overlay"
+                  aria-hidden="true"
+                >
+                  <span
+                    v-for="role in rolesForCard(card.id)"
+                    :key="role.id"
+                    :style="{ '--role-color': role.color }"
+                  >
+                    {{ role.label }}
+                  </span>
+                </div>
                 <span
                   class="selection-mark"
                   :class="{
@@ -206,22 +219,26 @@
                 <b :title="card.name">{{ card.name }}</b>
                 <small>{{ card.number }}</small>
               </div>
-              <div class="card-role-list">
-                <span
-                  v-for="role in rolesForCard(card.id)"
+              <div
+                class="card-role-list"
+                :aria-label="`${card.name}的角色标记`"
+              >
+                <button
+                  v-for="role in allRoles"
                   :key="role.id"
-                  class="card-role-tag"
+                  type="button"
+                  class="card-role-option"
+                  :class="{ active: cardHasRole(card.id, role.id) }"
                   :style="{ '--role-color': role.color }"
+                  :aria-label="`${
+                    cardHasRole(card.id, role.id) ? '移除' : '添加'
+                  }${card.name}的${role.label}标记`"
+                  :aria-pressed="cardHasRole(card.id, role.id)"
+                  @click="toggleCardRole(card.id, role.id)"
                 >
                   <i :style="{ background: role.color }" />
-                  {{ role.label }}
-                </span>
-                <span
-                  v-if="!rolesForCard(card.id).length"
-                  class="card-role-empty"
-                >
-                  未标记
-                </span>
+                  <span>{{ role.label }}</span>
+                </button>
               </div>
             </article>
           </div>
@@ -307,12 +324,16 @@
                 </div>
                 <span>{{ cardName(cardId) }}</span>
                 <div class="hand-role-list">
-                  <i
+                  <span
                     v-for="role in rolesForCard(cardId)"
                     :key="role.id"
-                    :style="{ background: role.color }"
+                    class="hand-role-tag"
+                    :style="{ '--role-color': role.color }"
                     :title="role.label"
-                  />
+                  >
+                    <i :style="{ background: role.color }" />
+                    {{ role.label }}
+                  </span>
                 </div>
               </article>
             </div>
@@ -353,12 +374,16 @@
               </div>
               <b>{{ cardName(currentHand.sixth) }}</b>
               <div class="hand-role-list">
-                <i
+                <span
                   v-for="role in rolesForCard(currentHand.sixth)"
                   :key="role.id"
-                  :style="{ background: role.color }"
+                  class="hand-role-tag"
+                  :style="{ '--role-color': role.color }"
                   :title="role.label"
-                />
+                >
+                  <i :style="{ background: role.color }" />
+                  {{ role.label }}
+                </span>
               </div>
             </article>
           </div>
@@ -1070,6 +1095,21 @@ const handleRoleAction = roleId => {
   activeRoleId.value = roleId;
 };
 
+const toggleCardRole = (cardId, roleId) => {
+  const role = allRoles.value.find(item => item.id === roleId);
+  if (!role) return;
+  const wasMarked = cardHasRole(cardId, roleId);
+  roleAssignments.value = toggleRoleForCards(
+    roleAssignments.value,
+    [cardId],
+    roleId,
+    allRoles.value,
+  );
+  notice.value = `${cardName(cardId)} · ${
+    wasMarked ? '移除' : '添加'
+  }${role.label}标记`;
+};
+
 const handleRoleCardClick = (cardId, index, event) => {
   if (markerMode.value === 'batch') {
     toggleCardSelection(cardId, index, event);
@@ -1077,16 +1117,7 @@ const handleRoleCardClick = (cardId, index, event) => {
   }
   const role = activeRole.value;
   if (!role) return;
-  const wasMarked = cardHasRole(cardId, role.id);
-  roleAssignments.value = toggleRoleForCards(
-    roleAssignments.value,
-    [cardId],
-    role.id,
-    allRoles.value,
-  );
-  notice.value = `${cardName(cardId)} · ${
-    wasMarked ? '移除' : '标记为'
-  }${role.label}`;
+  toggleCardRole(cardId, role.id);
 };
 
 const cardRoleActionLabel = card => {
@@ -1920,8 +1951,7 @@ input {
 
 .role-actions button i,
 .card-role-list i,
-.opening-hand article div i,
-.sixth-draw > div i,
+.hand-role-tag i,
 .hand-summary i,
 .probability-role i {
   width: 7px;
@@ -2079,17 +2109,17 @@ input {
 
 .role-card-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(138px, 1fr));
   gap: 12px 8px;
   margin-top: 14px;
 }
 
 .role-card-grid article {
   min-width: 0;
-  padding: 5px;
-  border: 1px solid transparent;
+  padding: 6px;
+  border: 1px solid var(--line);
   border-radius: 4px;
-  background: transparent;
+  background: var(--paper);
   transition: border-color 140ms ease, background-color 140ms ease;
 }
 
@@ -2138,10 +2168,47 @@ input {
   font-size: 8px;
 }
 
+.card-role-overlay {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 22px 5px 5px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(20, 22, 20, 0.88)
+  );
+  pointer-events: none;
+}
+
+.card-role-overlay span {
+  min-width: 0;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 5px;
+  overflow: hidden;
+  border-left: 3px solid var(--role-color);
+  border-radius: 2px;
+  color: white;
+  background: rgba(18, 19, 18, 0.82);
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .selection-mark {
   position: absolute;
   left: 3px;
   top: 3px;
+  z-index: 2;
   width: 20px;
   height: 20px;
   display: grid;
@@ -2180,34 +2247,49 @@ input {
 }
 
 .card-role-list {
-  min-height: 18px;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 3px;
-  margin-top: 4px;
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 7px;
 }
 
-.card-role-list .card-role-tag {
+.card-role-option {
   min-width: 0;
-  height: 16px;
+  height: 21px;
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 0 4px;
+  gap: 4px;
+  padding: 0 5px;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--role-color) 35%, var(--line));
+  border: 1px solid var(--line);
   border-radius: 2px;
-  color: var(--ink);
-  background: var(--paper);
-  font-size: 7px;
+  color: var(--muted);
+  background: #f8f7f3;
+  cursor: pointer;
+  font-size: 8px;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transition: border-color 120ms ease, background-color 120ms ease,
+    color 120ms ease;
 }
 
-.card-role-list .card-role-empty {
-  color: var(--muted);
-  font-size: 7px;
+.card-role-option span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-role-option:hover {
+  border-color: var(--role-color);
+  color: var(--ink);
+}
+
+.card-role-option.active {
+  border-color: color-mix(in srgb, var(--role-color) 72%, var(--line));
+  color: var(--ink);
+  background: color-mix(in srgb, var(--role-color) 16%, var(--paper));
+  box-shadow: inset 3px 0 var(--role-color);
 }
 
 .role-empty,
@@ -2354,10 +2436,31 @@ input {
 }
 
 .hand-role-list {
-  min-height: 9px;
+  min-height: 19px;
   display: flex;
-  gap: 3px;
-  margin-top: 4px;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.hand-role-tag {
+  max-width: 100%;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 5px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--role-color) 42%, var(--line));
+  border-left: 3px solid var(--role-color);
+  border-radius: 2px;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--role-color) 12%, var(--paper));
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sixth-draw {
@@ -2898,9 +3001,6 @@ input {
     border-bottom: 1px solid var(--line);
   }
 
-  .role-card-grid {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 680px) {
@@ -2955,10 +3055,6 @@ input {
     grid-row: 2;
   }
 
-  .role-card-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
   .hand-board {
     grid-template-columns: 1fr;
   }
@@ -3001,10 +3097,6 @@ input {
 }
 
 @media (max-width: 390px) {
-  .role-card-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
   .probability-head,
   .probability-row {
     grid-template-columns: 62px 34px 58px minmax(116px, 1fr);

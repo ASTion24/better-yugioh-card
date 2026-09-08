@@ -693,6 +693,16 @@ with sync_playwright() as playwright:
     )
     assert starter_role.get_attribute("aria-pressed") == "true"
     role_cards.nth(0).locator(".card-select").click()
+    first_role_card = role_cards.nth(0)
+    first_role_card.locator(".card-role-option").filter(
+        has_text="补点",
+    ).click()
+    first_role_tags = first_role_card.locator(".card-role-overlay span")
+    assert first_role_tags.count() == 3
+    assert "手坑" in first_role_card.locator(".card-role-overlay").inner_text()
+    assert "初动" in first_role_card.locator(".card-role-overlay").inner_text()
+    assert "补点" in first_role_card.locator(".card-role-overlay").inner_text()
+    assert first_role_card.locator(".card-role-option.active").count() == 3
     playtest_page.locator(".role-actions button").filter(
         has_text="补点",
     ).click()
@@ -713,13 +723,14 @@ with sync_playwright() as playwright:
     playtest_page.locator(".role-actions button").filter(
         has_text="解场",
     ).click()
-    assert role_cards.nth(0).locator(".card-role-tag").filter(
+    assert role_cards.nth(0).locator(".card-role-option.active").filter(
         has_text="解场",
     ).count() == 1
-    assert role_cards.nth(1).locator(".card-role-tag").filter(
+    assert role_cards.nth(1).locator(".card-role-option.active").filter(
         has_text="解场",
     ).count() == 1
     playtest_page.get_by_role("button", name="单卡标记").click()
+    assert playtest_page.locator(".hand-role-tag").count() >= 5
 
     playtest_page.get_by_role("button", name="添加条件").click()
     goal_condition = playtest_page.locator(".goal-condition").last

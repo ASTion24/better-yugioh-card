@@ -43,6 +43,14 @@ test('batch role toggles add or remove a role from every selected card', () => {
   );
 });
 
+test('one card can retain multiple distinct role assignments', () => {
+  assert.deepEqual(normalizeRoleAssignments({
+    1: ['starter', 'extender', 'starter', 'handtrap'],
+  }), {
+    1: ['starter', 'extender', 'handtrap'],
+  });
+});
+
 test('role copy counts include duplicate cards in the main deck', () => {
   const assignments = normalizeRoleAssignments({
     1: ['starter'],
