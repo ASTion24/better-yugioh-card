@@ -730,6 +730,10 @@ with sync_playwright() as playwright:
     )
     playtest_page.reload(wait_until="domcontentloaded")
     playtest_page.locator(".goal-editor").wait_for(timeout=120_000)
+    playtest_page.wait_for_function(
+        "() => document.querySelectorAll('.goal-condition').length === 3",
+        timeout=30_000,
+    )
     assert playtest_page.locator(".role-actions button").filter(
         has_text="一卡动",
     ).count() == 1
