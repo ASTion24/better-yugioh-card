@@ -350,12 +350,18 @@ with sync_playwright() as playwright:
     page.goto(f"{BASE_URL}/print/", wait_until="domcontentloaded")
     wait_for_network(page)
     render_policy = page.locator(".render-policy")
-    assert "排版预览" in render_policy.inner_text()
-    assert "快速卡图" in render_policy.inner_text()
-    assert "PDF 打印" in render_policy.inner_text()
+    assert "默认打印" in render_policy.inner_text()
+    assert "简中卡图" in render_policy.inner_text()
+    assert "约 300 DPI" in render_policy.inner_text()
     assert "高清重绘" in render_policy.inner_text()
-    assert page.get_by_role("button", name="快速卡图").count() == 0
-    assert "PDF · 高清重绘" in page.locator(".preview-footer").inner_text()
+    assert "约 600 DPI" in render_policy.inner_text()
+    high_quality = page.get_by_role(
+        "checkbox",
+        name="高清重绘",
+        exact=False,
+    )
+    assert not high_quality.is_checked()
+    assert "PDF · 简中卡图" in page.locator(".preview-footer").inner_text()
     assert "原创卡示例" not in page.locator(".project-bar select").inner_text()
     assert page.get_by_text("0.1 mm", exact=True).count() == 1
     custom_tile = page.locator(".deck-card-tile").filter(
@@ -370,7 +376,15 @@ with sync_playwright() as playwright:
     assert custom_pdf.read_bytes().startswith(b"%PDF")
 
     page.get_by_role("button", name="载入示例").click()
-    page.wait_for_timeout(500)
+    page.wait_for_function(
+        """() => {
+            const source = document.querySelector('.card-slot img')
+                ?.getAttribute('src') || '';
+            return source.includes('/ygoimg/sc/') &&
+                !source.endsWith('!half');
+        }""",
+        timeout=30_000,
+    )
     page.get_by_role("button", name="检查卡组").click()
     page.wait_for_function(
         "() => document.querySelector('.deck-message')?.textContent"
@@ -457,6 +471,11 @@ with sync_playwright() as playwright:
     )
     blue_eyes_queue.wait_for()
     assert blue_eyes_queue.locator("output").inner_text() == "2"
+    assert not high_quality.is_checked()
+    assert page.get_by_text(
+        "中等卡图语言",
+        exact=True,
+    ).locator("..").locator("select").input_value() == "sc"
 
     page.locator("#deck-text-input").fill("#main\n46986414\n#extra\n!side")
     page.wait_for_timeout(500)
@@ -507,6 +526,16 @@ with sync_playwright() as playwright:
         )
         assert b'"version": 3' in archive.read(project_file)
         assert any(name.endswith("-inspection.txt") for name in delivery_names)
+    high_quality.check()
+    assert "PDF · 高清重绘" in page.locator(".preview-footer").inner_text()
+    with page.expect_download(timeout=240_000) as download_info:
+        page.get_by_role("button", name="生成打印 PDF").click()
+    high_pdf = ARTIFACTS / "high-resolution.pdf"
+    download_info.value.save_as(high_pdf)
+    assert high_pdf.read_bytes().startswith(b"%PDF")
+    assert pdf_page_count(high_pdf) == 4
+    high_quality.uncheck()
+    assert "PDF · 简中卡图" in page.locator(".preview-footer").inner_text()
     page.locator(".print-queue").get_by_title("从卡组重置").click()
 
     source = page.locator(".deck-card-tile").filter(has_text="89631139")
@@ -1023,8 +1052,8 @@ with sync_playwright() as playwright:
         """() => {
             const image = document.querySelector('.card-slot img');
             return image?.src.startsWith('data:image/') &&
-                image.naturalWidth >= 1394 &&
-                image.naturalHeight >= 2031;
+                image.naturalWidth >= 680 &&
+                image.naturalHeight >= 680;
         }""",
         timeout=180_000,
     )
@@ -1088,6 +1117,10 @@ with sync_playwright() as playwright:
         "duplex_pdf": {
             "pages": pdf_page_count(duplex_pdf),
             "bytes": duplex_pdf.stat().st_size,
+        },
+        "high_resolution_pdf": {
+            "pages": pdf_page_count(high_pdf),
+            "bytes": high_pdf.stat().st_size,
         },
         "delivery_entries": delivery_names,
         "zip_entries": names,

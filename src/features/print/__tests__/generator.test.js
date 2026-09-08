@@ -1,15 +1,21 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { resolvePrintableRenderMode } from '../generator.js';
+import {
+  DEFAULT_PRINT_RENDER_MODE,
+  PRINT_RENDER_MODES,
+  resolvePrintableRenderMode,
+} from '../generator.js';
 
-test('print generation defaults to high-resolution rendering', () => {
-  assert.equal(resolvePrintableRenderMode(), 'high');
-  assert.equal(resolvePrintableRenderMode('high'), 'high');
+test('print generation defaults to medium simplified-card images', () => {
+  assert.equal(DEFAULT_PRINT_RENDER_MODE, 'medium');
+  assert.equal(resolvePrintableRenderMode(), 'medium');
+  assert.equal(resolvePrintableRenderMode(PRINT_RENDER_MODES.MEDIUM), 'medium');
+  assert.equal(resolvePrintableRenderMode(PRINT_RENDER_MODES.HIGH), 'high');
 });
 
-test('quick card images cannot enter the print pipeline', () => {
+test('low-resolution preview thumbnails cannot enter the print pipeline', () => {
   assert.throws(
     () => resolvePrintableRenderMode('quick'),
-    /仅用于排版预览/,
+    /低清缩略图不能生成打印文件/,
   );
 });

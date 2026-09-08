@@ -35,7 +35,7 @@ default.
 | Unified launcher | Open an image or file to import a deck; paste YDK, YDKe, or a deck link; reopen any recent deck |
 | Single-card DIY studio | Database completion, high-resolution rendering, artwork cropping, and PNG export |
 | Card library | On-demand card search with deck insertion and editable custom-card drafts |
-| Deck print workspace | Turn YDK into an editable deck and A4 PDF; quick images are preview-only, while print outputs always use high-resolution rendering |
+| Deck print workspace | Turn YDK into an editable deck and A4 PDF; default to ~300 DPI Simplified Chinese card images or opt into ~600 DPI high-resolution rendering |
 | Image recognition | Upload or capture single/multiple cards, review results, and export or continue editing a standard deck |
 | Duel lab | Roles, exact odds, custom goals, failure diagnosis, Side plans, and trial history |
 | Batch production | CSV/JSON import, quality audit, bulk styles, production packages, and print handoff |
@@ -58,6 +58,7 @@ deck collections use `.ygoworkspace`. IndexedDB autosave, revision checks, and
 - No bundled full card database; only records required by the current task are requested.
 - Recognition uses an approximately 800 KB visual fingerprint index and loads numeric OCR only when needed.
 - Source images and recognition crops are never persisted in deck backups.
+- Layout previews and default printing use 680 × 986 Simplified Chinese card images; high-resolution rendering is optional and slower.
 - Initial recognition targets regular screenshots, single-card photos, and unobstructed flat lays. Heavy glare, overlap, and scattered cards require manual review.
 - Standard YDK/YDKe exports contain official numeric IDs only. Custom-card data stays in Better YGO deck backups.
 

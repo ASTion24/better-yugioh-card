@@ -208,23 +208,32 @@
             <h2>渲染策略</h2>
           </div>
 
-          <div class="render-policy" aria-label="渲染策略">
-            <div>
-              <small>排版预览</small>
-              <strong>快速卡图</strong>
+          <div class="render-policy" aria-label="打印卡图质量">
+            <div class="render-policy__default">
+              <small>默认打印</small>
+              <strong>{{ mediumQualityLabel }}</strong>
+              <span>约 300 DPI · 生成更快</span>
             </div>
-            <Icon icon="ri:arrow-right-line" />
-            <div class="render-policy__output">
-              <small>PDF 打印</small>
-              <strong>高清重绘</strong>
-            </div>
+            <label class="render-quality-toggle">
+              <input v-model="highResolutionEnabled" type="checkbox">
+              <span class="render-quality-toggle__track" aria-hidden="true">
+                <i />
+              </span>
+              <span>
+                <strong>高清重绘</strong>
+                <small>约 600 DPI · 生成更慢</small>
+              </span>
+            </label>
           </div>
 
           <label class="field-row">
-            <span>预览卡图语言</span>
-            <select v-model="settings.language">
-              <option value="zh">中文</option>
+            <span>中等卡图语言</span>
+            <select
+              v-model="settings.language"
+              :disabled="highResolutionEnabled"
+            >
               <option value="sc">简体中文</option>
+              <option value="zh">中文卡图</option>
               <option value="jp">日文</option>
               <option value="en">英文</option>
             </select>
@@ -430,7 +439,7 @@
         <footer class="preview-footer">
           <span>{{ selectedCardIds.length }} 张</span>
           <span>{{ pageCount }} 页 A4</span>
-          <span>PDF · 高清重绘</span>
+          <span>PDF · {{ printQualityLabel }}</span>
         </footer>
       </section>
     </main>
@@ -468,7 +477,8 @@ import {
   isPrereleaseCardId,
 } from './features/print/card-source';
 import {
-  PRINT_RENDER_MODE,
+  DEFAULT_PRINT_RENDER_MODE,
+  PRINT_RENDER_MODES,
   preparePrintableCards,
 } from './features/print/generator';
 import {
@@ -583,8 +593,9 @@ const selectedSections = reactive({
   side: true,
 });
 const settings = reactive({
-  mode: PRINT_RENDER_MODE,
-  language: 'zh',
+  mode: DEFAULT_PRINT_RENDER_MODE,
+  renderModeVersion: 2,
+  language: 'sc',
   layout: 'center',
   gap: 0.1,
   cropMarks: true,
@@ -611,6 +622,22 @@ const maxLayoutGap = computed(() =>
     : 10);
 const pageCount = computed(() =>
   Math.max(1, Math.ceil(selectedCardIds.value.length / cardsPerPage.value)));
+const highResolutionEnabled = computed({
+  get: () => settings.mode === PRINT_RENDER_MODES.HIGH,
+  set: enabled => {
+    settings.mode = enabled
+      ? PRINT_RENDER_MODES.HIGH
+      : PRINT_RENDER_MODES.MEDIUM;
+  },
+});
+const mediumQualityLabel = computed(() => ({
+  sc: '简中卡图',
+  zh: '中文卡图',
+  jp: '日文卡图',
+  en: '英文卡图',
+})[settings.language] || '中等卡图');
+const printQualityLabel = computed(() =>
+  highResolutionEnabled.value ? '高清重绘' : mediumQualityLabel.value);
 const previewLanguage = computed(() => settings.language);
 const previewSlots = computed(() => {
   const start = currentPage.value * cardsPerPage.value;
@@ -662,7 +689,9 @@ const progressPercent = computed(() => {
   return Math.round(progress.done / progress.total * 100);
 });
 const generationMessage = computed(() =>
-  `高清渲染 ${progress.done} / ${progress.total}`);
+  highResolutionEnabled.value
+    ? `高清重绘 ${progress.done} / ${progress.total}`
+    : `获取${mediumQualityLabel.value} ${progress.done} / ${progress.total}`);
 let parseRequest = 0;
 let suppressedDeckTextValue = null;
 let prereleasePreviewRequest = 0;
@@ -677,7 +706,7 @@ const schedulePrereleasePreviews = () => {
       .filter(id => !generatedImageMap.value.has(id));
     if (!ids.length) return;
     const result = await preparePrintableCards(ids, {
-      mode: PRINT_RENDER_MODE,
+      mode: DEFAULT_PRINT_RENDER_MODE,
       language: 'sc',
       customCards: customCards.value,
     });
@@ -818,6 +847,10 @@ watch(pageCount, count => {
 });
 
 watch(() => settings.language, () => {
+  generatedImageMap.value = new Map();
+});
+
+watch(() => settings.mode, () => {
   generatedImageMap.value = new Map();
 });
 
@@ -1062,8 +1095,15 @@ const applyProject = async project => {
   activeProjectRevision.value = project.revision || 0;
   projectName.value = project.name;
   externalUpdate.value = null;
-  Object.assign(settings, project.settings || {});
-  settings.mode = PRINT_RENDER_MODE;
+  const savedSettings = project.settings || {};
+  Object.assign(settings, savedSettings);
+  if (savedSettings.renderModeVersion !== 2) {
+    settings.mode = DEFAULT_PRINT_RENDER_MODE;
+    settings.language = 'sc';
+  } else if (!Object.values(PRINT_RENDER_MODES).includes(settings.mode)) {
+    settings.mode = DEFAULT_PRINT_RENDER_MODE;
+  }
+  settings.renderModeVersion = 2;
   Object.assign(selectedSections, project.selectedSections || {});
   deck.value = {
     main: [...(project.deck?.main || [])],
@@ -1323,7 +1363,7 @@ const copyYdke = async () => {
 
 const getPdfFilename = () => {
   const date = new Date().toISOString().slice(0, 10);
-  return `${getDeckFilenameStem()}-${PRINT_RENDER_MODE}-${date}.pdf`;
+  return `${getDeckFilenameStem()}-${settings.mode}-${date}.pdf`;
 };
 
 const resolveDeckNames = async () => {
@@ -1382,8 +1422,8 @@ const createPrintablePdfBlob = async () => {
   progress.done = 0;
   progress.total = new Set(selectedCardIds.value).size;
   const result = await preparePrintableCards(selectedCardIds.value, {
-    mode: PRINT_RENDER_MODE,
-    language: 'sc',
+    mode: settings.mode,
+    language: previewLanguage.value,
     customCards: customCards.value,
     onProgress: value => {
       progress.done = value.done;
@@ -1434,7 +1474,7 @@ const generatePdf = async () => {
       ? ` · ${result.fullCardFallbacks.length} 张超框或异画卡保留完整卡图`
       : '';
     completedMessage.value =
-      `已生成 ${result.cards.length} 张卡片` +
+      `已生成 ${result.cards.length} 张${printQualityLabel.value}` +
       `${settings.duplex ? ' · 含双面卡背' : ''}` +
       `${prereleaseMessage}${fullCardMessage}`;
   } catch (error) {
@@ -1947,47 +1987,109 @@ label {
 }
 
 .render-policy {
-  display: grid;
-  grid-template-columns: 1fr 28px 1fr;
-  align-items: stretch;
   border: 1px solid var(--strong-line);
   border-radius: 4px;
   overflow: hidden;
-}
-
-.render-policy > div {
-  min-width: 0;
-  padding: 11px 8px;
-  color: var(--muted);
   background: var(--paper);
-  text-align: center;
 }
 
-.render-policy > svg {
+.render-policy__default,
+.render-quality-toggle {
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 10px;
+  padding: 9px 12px;
+}
+
+.render-policy__default small {
+  grid-row: 1 / span 2;
   align-self: center;
-  justify-self: center;
   color: var(--muted);
+  font-size: 10px;
 }
 
-.render-policy > .render-policy__output {
-  color: white;
-  background: var(--ink);
+.render-policy__default strong {
+  align-self: end;
+  font-size: 12px;
 }
 
-.render-policy strong,
-.render-policy small {
+.render-policy__default span {
+  align-self: start;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.render-quality-toggle {
+  position: relative;
+  grid-template-columns: 36px minmax(0, 1fr);
+  border-top: 1px solid var(--line);
+  cursor: pointer;
+}
+
+.render-quality-toggle input {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  z-index: 1;
+  width: 34px;
+  height: 20px;
+  margin: -10px 0 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.render-quality-toggle__track {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  border: 1px solid var(--strong-line);
+  border-radius: 10px;
+  background: var(--canvas);
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.render-quality-toggle__track i {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: background-color 160ms ease, transform 160ms ease;
+}
+
+.render-quality-toggle input:checked + .render-quality-toggle__track {
+  border-color: var(--teal);
+  background: var(--teal);
+}
+
+.render-quality-toggle input:checked + .render-quality-toggle__track i {
+  background: white;
+  transform: translateX(14px);
+}
+
+.render-quality-toggle input:focus-visible + .render-quality-toggle__track {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+.render-quality-toggle strong,
+.render-quality-toggle small {
   display: block;
 }
 
-.render-policy strong {
-  font-weight: 700;
+.render-quality-toggle strong {
+  font-size: 12px;
 }
 
-.render-policy small {
-  margin-bottom: 3px;
-  margin-top: 3px;
-  font-size: 10px;
-  opacity: 0.7;
+.render-quality-toggle small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 9px;
 }
 
 .field-row,

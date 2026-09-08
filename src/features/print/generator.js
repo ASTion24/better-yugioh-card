@@ -12,13 +12,20 @@ import {
 import { runWithConcurrency } from './concurrency.js';
 
 const highResolutionPromiseMap = new Map();
-export const PRINT_RENDER_MODE = 'high';
+export const PRINT_RENDER_MODES = Object.freeze({
+  MEDIUM: 'medium',
+  HIGH: 'high',
+});
+export const DEFAULT_PRINT_RENDER_MODE = PRINT_RENDER_MODES.MEDIUM;
 
 export const resolvePrintableRenderMode = mode => {
-  if (mode === undefined || mode === PRINT_RENDER_MODE) {
-    return PRINT_RENDER_MODE;
+  if (mode === undefined) {
+    return DEFAULT_PRINT_RENDER_MODE;
   }
-  throw new Error('快速卡图仅用于排版预览，不能生成打印文件');
+  if (Object.values(PRINT_RENDER_MODES).includes(mode)) {
+    return mode;
+  }
+  throw new Error('低清缩略图不能生成打印文件');
 };
 
 const renderCachedHighResolutionCard = async cardId => {
@@ -41,7 +48,7 @@ export const preparePrintableCards = async (cardIds, options = {}) => {
     customCards = {},
     onProgress,
   } = options;
-  resolvePrintableRenderMode(options.mode);
+  const mode = resolvePrintableRenderMode(options.mode);
   const idChangelog = await fetchIdChangelog();
   const normalizedIds = normalizeCardIds(cardIds, idChangelog);
   const uniqueIds = [...new Set(normalizedIds)];
@@ -68,7 +75,7 @@ export const preparePrintableCards = async (cardIds, options = {}) => {
             quality: 0.94,
           }),
         };
-      } else {
+      } else if (mode === PRINT_RENDER_MODES.HIGH) {
         try {
           card = await renderCachedHighResolutionCard(cardId);
           if (card.fullCardFallback) {
@@ -84,6 +91,11 @@ export const preparePrintableCards = async (cardIds, options = {}) => {
             dataUrl: await fetchCardImageDataUrl(cardId, language),
           };
         }
+      } else {
+        card = {
+          id: cardId,
+          dataUrl: await fetchCardImageDataUrl(cardId, language),
+        };
       }
       imageMap.set(cardId, card);
     } catch (error) {
@@ -102,7 +114,10 @@ export const preparePrintableCards = async (cardIds, options = {}) => {
     }
   });
 
-  await runWithConcurrency(tasks, 1);
+  const requiresSerialRendering =
+    mode === PRINT_RENDER_MODES.HIGH ||
+    uniqueIds.some(isCustomCardId);
+  await runWithConcurrency(tasks, requiresSerialRendering ? 1 : 4);
 
   return {
     cards: normalizedIds.map(id => imageMap.get(id) || { id, dataUrl: null }),

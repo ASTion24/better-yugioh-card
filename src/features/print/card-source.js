@@ -166,8 +166,8 @@ export const getFullCardImageUrl = (cardId, language = 'zh') => {
   return proxiedImageUrl(getRawCardImageUrl(cardId, language));
 };
 
-export const getCardPreviewUrl = (cardId, language = 'zh') => {
-  return `${getRawCardImageUrl(cardId, language)}!half`;
+export const getCardPreviewUrl = (cardId, language = 'sc') => {
+  return getRawCardImageUrl(cardId, language);
 };
 
 export const getArtworkImageUrl = cardId => {

@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   getCardArtworkId,
   getCardDisplayName,
+  getCardPreviewUrl,
   getPrereleaseArchiveVersion,
   getRawCardImageUrl,
   isAlternateArtworkCard,
@@ -37,6 +38,14 @@ test('prerelease card IDs use the MyCard full-image source', () => {
     getRawCardImageUrl('89631139', 'sc'),
     'https://cdn.233.momobako.com/ygoimg/sc/89631139.webp',
   );
+});
+
+test('print previews use the full simplified-Chinese card image', () => {
+  assert.equal(
+    getCardPreviewUrl('89631139'),
+    'https://cdn.233.momobako.com/ygoimg/sc/89631139.webp',
+  );
+  assert.doesNotMatch(getCardPreviewUrl('89631139'), /!half$/);
 });
 
 test('prerelease archive uses the rolling latest URL and version fallbacks', () => {
