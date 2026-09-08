@@ -738,6 +738,13 @@ with sync_playwright() as playwright:
         has_text="一卡动",
     ).count() == 1
     assert playtest_page.locator(".goal-condition").count() == 3
+    playtest_page.wait_for_function(
+        """expected => Number(document.querySelector(
+            '.history-stats > span strong'
+        )?.textContent) === expected""",
+        arg=history_after,
+        timeout=30_000,
+    )
     assert int(
         playtest_page.locator(".history-stats > span")
         .nth(0)
