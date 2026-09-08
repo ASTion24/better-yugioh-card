@@ -54,7 +54,7 @@
     "normalize.css": "^8.0.1",
     "sql.js": "^1.14.2",
     "tesseract.js": "^7.0.0",
-    "vue": "^3.5.30",
+    "vue": "^3.5.42",
     "yugioh-card": "file:packages",
     "yugioh-card-v190": "npm:yugioh-card@1.9.2"
   },
