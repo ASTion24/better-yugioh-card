@@ -300,6 +300,8 @@
                   <CardThumbnail
                     :card-id="cardId"
                     :custom-card="getCustomCard(customCards, cardId)"
+                    quality="medium"
+                    language="sc"
                     :alt="cardName(cardId)"
                   />
                   <div class="hand-card-actions">
@@ -350,6 +352,8 @@
                 <CardThumbnail
                   :card-id="currentHand.sixth"
                   :custom-card="getCustomCard(customCards, currentHand.sixth)"
+                  quality="medium"
+                  language="sc"
                   :alt="cardName(currentHand.sixth)"
                 />
                 <div class="hand-card-actions">

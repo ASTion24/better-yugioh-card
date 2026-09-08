@@ -686,6 +686,20 @@ with sync_playwright() as playwright:
         has_text="手坑",
     )
     assert "9 / 40" in handtrap_row.inner_text()
+    playtest_page.wait_for_function(
+        """() => {
+            const images = [...document.querySelectorAll(
+                '.opening-hand article img'
+            )];
+            return images.length === 5 && images.every(image =>
+                image.src.includes('/ygoimg/sc/') &&
+                !image.src.includes('!thumb2') &&
+                image.complete &&
+                image.naturalWidth >= 680
+            );
+        }""",
+        timeout=120_000,
+    )
 
     role_cards = playtest_page.locator(".role-card-grid article")
     starter_role = playtest_page.locator(".role-actions button").filter(
@@ -819,13 +833,17 @@ with sync_playwright() as playwright:
     playtest_page.reload(wait_until="domcontentloaded")
     playtest_page.locator(".goal-editor").wait_for(timeout=120_000)
     playtest_page.wait_for_function(
-        "() => document.querySelectorAll('.goal-condition').length === 3",
+        """() => document.querySelector(
+            '.role-card-grid article'
+        )?.querySelectorAll('.card-role-option.active').length >= 3""",
         timeout=30_000,
     )
     assert playtest_page.locator(".role-actions button").filter(
         has_text="一卡动",
     ).count() == 1
-    assert playtest_page.locator(".goal-condition").count() == 3
+    assert "初动" in playtest_page.locator(
+        ".role-card-grid article",
+    ).first.locator(".card-role-overlay").inner_text()
     playtest_page.wait_for_function(
         """expected => new Promise((resolve, reject) => {
             const visible = Number(document.querySelector(

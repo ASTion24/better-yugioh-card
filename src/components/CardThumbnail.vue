@@ -20,6 +20,7 @@ import { ref, watch } from 'vue';
 import { renderCustomCardThumbnail } from '@/features/cards/custom-card-render';
 import {
   fetchPrereleaseImageDataUrl,
+  getCardPreviewUrl,
   getCardThumbnailUrl,
   isPrereleaseCardId,
 } from '@/features/print/card-source';
@@ -36,6 +37,15 @@ const props = defineProps({
   customCard: {
     type: Object,
     default: null,
+  },
+  quality: {
+    type: String,
+    default: 'thumbnail',
+    validator: value => ['thumbnail', 'medium'].includes(value),
+  },
+  language: {
+    type: String,
+    default: 'sc',
   },
   alt: {
     type: String,
@@ -64,7 +74,9 @@ const resolveSource = async () => {
     return;
   }
   if (!props.customCard && !isPrereleaseCardId(id)) {
-    resolvedSource.value = getCardThumbnailUrl(id);
+    resolvedSource.value = props.quality === 'medium' && !useFallback.value
+      ? getCardPreviewUrl(id, props.language)
+      : getCardThumbnailUrl(id);
     loading.value = false;
     return;
   }
@@ -90,7 +102,14 @@ const resolveSource = async () => {
 
 const handleError = async () => {
   const id = String(props.cardId || '');
-  if ((props.customCard || isPrereleaseCardId(id)) && !useFallback.value) {
+  if (
+    (
+      props.quality === 'medium' ||
+      props.customCard ||
+      isPrereleaseCardId(id)
+    ) &&
+    !useFallback.value
+  ) {
     useFallback.value = true;
     resolvedSource.value = '';
     await resolveSource();
@@ -106,6 +125,8 @@ watch(
     props.source,
     props.customCard?.updatedAt,
     props.customCard?.data?.image,
+    props.quality,
+    props.language,
   ],
   () => {
     useFallback.value = false;
