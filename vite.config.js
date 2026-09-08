@@ -9,7 +9,13 @@ import {
   fetchDeckSource,
 } from './server/deck-source-proxy.js';
 
-const packageManifest = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'packages/package.json'), 'utf8'));
+const projectRoot = import.meta.dirname;
+const packageManifest = JSON.parse(
+  fs.readFileSync(
+    path.resolve(projectRoot, 'packages/package.json'),
+    'utf8',
+  ),
+);
 const packageExternalSet = new Set([
   ...Object.keys(packageManifest.dependencies ?? {}),
   ...Object.keys(packageManifest.peerDependencies ?? {}),
@@ -26,7 +32,7 @@ const preserveModulesOutput = {
 const buildLib = {
   outDir: 'dist',
   lib: {
-    entry: path.resolve(__dirname, 'packages/index.js'),
+    entry: path.resolve(projectRoot, 'packages/index.js'),
     formats: ['es'],
   },
   rolldownOptions: {
@@ -42,13 +48,13 @@ const buildWebsite = {
   rolldownOptions: {
     preserveEntrySignatures: 'strict',
     input: {
-      home: path.resolve(__dirname, 'index.html'),
-      editor: path.resolve(__dirname, 'editor/index.html'),
-      print: path.resolve(__dirname, 'print/index.html'),
-      recognize: path.resolve(__dirname, 'recognize/index.html'),
-      library: path.resolve(__dirname, 'library/index.html'),
-      batch: path.resolve(__dirname, 'batch/index.html'),
-      playtest: path.resolve(__dirname, 'playtest/index.html'),
+      home: path.resolve(projectRoot, 'index.html'),
+      editor: path.resolve(projectRoot, 'editor/index.html'),
+      print: path.resolve(projectRoot, 'print/index.html'),
+      recognize: path.resolve(projectRoot, 'recognize/index.html'),
+      library: path.resolve(projectRoot, 'library/index.html'),
+      batch: path.resolve(projectRoot, 'batch/index.html'),
+      playtest: path.resolve(projectRoot, 'playtest/index.html'),
     },
     output: {
       codeSplitting: {
@@ -108,7 +114,7 @@ export default defineConfig(({ mode }) => {
           { src: ['LICENSE', 'README.md', 'README.en.md'], dest: '.' },
         ],
       }), dts({
-        tsconfigPath: path.resolve(__dirname, 'tsconfig.dts.json'),
+        tsconfigPath: path.resolve(projectRoot, 'tsconfig.dts.json'),
         include: ['packages/**/*.js'],
         outDir: 'dist',
         entryRoot: 'packages',
@@ -119,7 +125,7 @@ export default defineConfig(({ mode }) => {
     ],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, 'src'),
+        '@': path.resolve(projectRoot, 'src'),
       },
     },
     build: buildConfigMap[buildTarget],

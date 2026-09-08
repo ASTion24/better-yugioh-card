@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 
-from PIL import Image, ImageDraw
 from playwright.sync_api import sync_playwright
 
 
@@ -24,34 +23,49 @@ DENIED_CAMERA_SCRIPT = """
 """
 
 
+def rgb_to_yuv(color):
+    red, green, blue = color
+    return (
+        round(16 + (65.738 * red + 129.057 * green + 25.064 * blue) / 256),
+        round(128 + (-37.945 * red - 74.494 * green + 112.439 * blue) / 256),
+        round(128 + (112.439 * red - 94.154 * green - 18.285 * blue) / 256),
+    )
+
+
 def create_camera_fixture():
     width, height = 640, 480
-    frame = Image.new("RGB", (width, height), "#343632")
-    draw = ImageDraw.Draw(frame)
-    artwork = Image.open(
-        ROOT / "src" / "assets" / "image" / "blue-eyes-old.jpg"
-    ).convert("RGB")
-    artwork = artwork.resize((218, 221), Image.Resampling.LANCZOS)
+    chroma_width, chroma_height = width // 2, height // 2
+    background = rgb_to_yuv((52, 54, 50))
+    y_channel = bytearray([background[0]]) * (width * height)
+    cb_channel = bytearray([background[1]]) * (chroma_width * chroma_height)
+    cr_channel = bytearray([background[2]]) * (chroma_width * chroma_height)
+
+    def fill_rectangle(bounds, color):
+        left, top, right, bottom = bounds
+        y_value, cb_value, cr_value = rgb_to_yuv(color)
+        for row in range(top, bottom):
+            start = row * width + left
+            y_channel[start:start + right - left] = bytes([y_value]) * (
+                right - left
+            )
+        for row in range(top // 2, (bottom + 1) // 2):
+            start = row * chroma_width + left // 2
+            length = (right + 1) // 2 - left // 2
+            cb_channel[start:start + length] = bytes([cb_value]) * length
+            cr_channel[start:start + length] = bytes([cr_value]) * length
 
     for x in (20, 340):
-        draw.rectangle((x, 36, x + 280, 444), fill="#d7bd78")
-        draw.rectangle(
-            (x + 7, 43, x + 273, 437),
-            outline="#f2dfa8",
-            width=4,
-        )
-        frame.paste(artwork, (x + 31, 123))
-        draw.rectangle((x + 25, 351, x + 255, 421), fill="#f6f0dd")
+        fill_rectangle((x, 36, x + 280, 444), (215, 189, 120))
+        fill_rectangle((x + 7, 43, x + 273, 437), (242, 223, 168))
+        fill_rectangle((x + 14, 50, x + 266, 430), (215, 189, 120))
+        fill_rectangle((x + 31, 123, x + 249, 344), (46, 99, 113))
+        fill_rectangle((x + 25, 351, x + 255, 421), (246, 240, 221))
 
-    y_channel, cb_channel, cr_channel = frame.convert("YCbCr").split()
-    chroma_size = (width // 2, height // 2)
-    cb_channel = cb_channel.resize(chroma_size, Image.Resampling.BOX)
-    cr_channel = cr_channel.resize(chroma_size, Image.Resampling.BOX)
     payload = (
         b"FRAME\n" +
-        y_channel.tobytes() +
-        cb_channel.tobytes() +
-        cr_channel.tobytes()
+        bytes(y_channel) +
+        bytes(cb_channel) +
+        bytes(cr_channel)
     )
     fixture = ARTIFACTS / "camera-card-grid.y4m"
     fixture.write_bytes(
