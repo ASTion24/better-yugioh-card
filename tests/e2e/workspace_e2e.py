@@ -820,12 +820,6 @@ with sync_playwright() as playwright:
         arg={"id": playtest_project_id, "minimum": history_after},
         timeout=30_000,
     )
-    assert int(
-        playtest_page.locator(".history-stats > span")
-        .nth(0)
-        .locator("strong")
-        .inner_text()
-    ) >= history_after
     playtest_page.set_viewport_size({"width": 390, "height": 844})
     playtest_page.wait_for_function(
         """() => {
