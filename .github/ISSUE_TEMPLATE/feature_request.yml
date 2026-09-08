@@ -1,0 +1,39 @@
+name: Feature request
+description: Propose an improvement to a real player workflow
+title: "[Feature] "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: player_problem
+    attributes:
+      label: Player problem
+      description: Describe the repeated task or failure this feature would solve.
+    validations:
+      required: true
+
+  - type: textarea
+    id: current_workaround
+    attributes:
+      label: Current workaround
+      description: Explain how players handle this today.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed workflow
+      description: Describe inputs, actions, and expected output.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Project constraints
+      options:
+        - label: This can remain local-first without an account or cloud backend.
+          required: true
+        - label: This does not require bundling a full card database.
+          required: true

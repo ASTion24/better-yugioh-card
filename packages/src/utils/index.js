@@ -1,6 +1,8 @@
 import { isPlainObject } from 'lodash-unified';
-// 已加载的字体路径列表
-let fontPathList = [];
+
+const browserFontPromiseMap = new Map();
+const fontManifestPromiseMap = new Map();
+const nodeFontKeySet = new Set();
 let nodeFs = null;
 // 是否是浏览器
 export const isBrowser = typeof window !== 'undefined' && typeof window.document !== 'undefined';
@@ -20,54 +22,70 @@ const getNodeFs = () => {
   return nodeFs;
 };
 
-// 加载字体 - 浏览器环境，异步
-export const loadFontBrowser = fontPath => {
-  return new Promise((resolve, reject) => {
-    if (fontPathList.includes(fontPath)) {
-      resolve();
-      return;
+const loadFontManifest = fontPath => {
+  if (fontManifestPromiseMap.has(fontPath)) {
+    return fontManifestPromiseMap.get(fontPath);
+  }
+
+  const promise = fetch(`${fontPath}/font-list.json`).then(res => {
+    if (!res.ok) {
+      throw new Error(`读取字体清单失败: ${res.status}`);
     }
-    fontPathList.push(fontPath);
-    fetch(`${fontPath}/font-list.json`).then(res => {
-      if (res.ok) {
-        return res.json();
-      } else {
-        throw new Error();
-      }
-    }).then(async data => {
-      const fontList = [];
-      data.forEach(family => {
-        const font = new FontFace(
-          family,
-          `url(${fontPath}/${family}.woff2) format('woff2')`,
-          {
-            display: 'swap',
-          },
-        );
-        document.fonts.add(font);
-        fontList.push(font);
-      });
-      const fontLoadList = fontList.map(font => font.load());
-      await Promise.allSettled(fontLoadList);
-      resolve();
-    }).catch(() => {
-      reject('读取字体失败');
-    });
+    return res.json();
+  }).catch(error => {
+    fontManifestPromiseMap.delete(fontPath);
+    throw error;
   });
+  fontManifestPromiseMap.set(fontPath, promise);
+  return promise;
+};
+
+const selectFontFamilies = (manifest, familyList) => {
+  if (!familyList?.length) {
+    return manifest;
+  }
+  const requestedSet = new Set(familyList);
+  return manifest.filter(family => requestedSet.has(family));
+};
+
+// 加载字体 - 浏览器环境，异步；失败的请求不会污染缓存，可再次尝试。
+export const loadFontBrowser = async (fontPath, familyList = []) => {
+  const manifest = await loadFontManifest(fontPath);
+  const selectedFamilies = selectFontFamilies(manifest, familyList);
+  await Promise.all(selectedFamilies.map(family => {
+    const fontUrl = `${fontPath}/${family}.woff2`;
+    if (browserFontPromiseMap.has(fontUrl)) {
+      return browserFontPromiseMap.get(fontUrl);
+    }
+
+    const font = new FontFace(family, `url(${fontUrl}) format('woff2')`, {
+      display: 'swap',
+    });
+    document.fonts.add(font);
+    const promise = font.load().catch(error => {
+      browserFontPromiseMap.delete(fontUrl);
+      document.fonts.delete(font);
+      throw error;
+    });
+    browserFontPromiseMap.set(fontUrl, promise);
+    return promise;
+  }));
 };
 
 // 加载字体 - Nodejs 环境，同步
-export const loadFontNode = (fontPath, skia) => {
-  if (fontPathList.includes(fontPath)) {
-    return;
-  }
-  fontPathList.push(fontPath);
-  const data = JSON.parse(getNodeFs().readFileSync(`${fontPath}/font-list.json`, 'utf-8'));
+export const loadFontNode = (fontPath, skia, familyList = []) => {
+  const manifest = JSON.parse(getNodeFs().readFileSync(`${fontPath}/font-list.json`, 'utf-8'));
+  const selectedFamilies = selectFontFamilies(manifest, familyList);
   if (skia) {
-    data.forEach(family => {
+    selectedFamilies.forEach(family => {
+      const fontKey = `${fontPath}/${family}`;
+      if (nodeFontKeySet.has(fontKey)) {
+        return;
+      }
       skia.FontLibrary.use(family, [
         `${fontPath}/${family}.woff2`,
       ]);
+      nodeFontKeySet.add(fontKey);
     });
   }
 };

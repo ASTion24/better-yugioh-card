@@ -4,6 +4,10 @@ import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import dts from 'vite-plugin-dts';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
+import {
+  DeckSourceError,
+  fetchDeckSource,
+} from './server/deck-source-proxy.js';
 
 const packageManifest = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'packages/package.json'), 'utf8'));
 const packageExternalSet = new Set([
@@ -34,12 +38,59 @@ const buildLib = {
 
 const buildWebsite = {
   outDir: 'docs',
+  emptyOutDir: true,
+  rolldownOptions: {
+    preserveEntrySignatures: 'strict',
+    input: {
+      home: path.resolve(__dirname, 'index.html'),
+      editor: path.resolve(__dirname, 'editor/index.html'),
+      print: path.resolve(__dirname, 'print/index.html'),
+      recognize: path.resolve(__dirname, 'recognize/index.html'),
+      library: path.resolve(__dirname, 'library/index.html'),
+      batch: path.resolve(__dirname, 'batch/index.html'),
+      playtest: path.resolve(__dirname, 'playtest/index.html'),
+    },
+    output: {
+      codeSplitting: {
+        groups: [{
+          name: 'yugioh-renderer',
+          test: id => id.includes(`${path.sep}packages${path.sep}`) ||
+            id.includes('yugioh-card@file+packages'),
+          priority: 100,
+        }],
+      },
+    },
+  },
 };
 
 const buildConfigMap = {
   lib: buildLib,
   website: buildWebsite,
 };
+
+const deckSourceProxy = () => ({
+  name: 'deck-source-proxy',
+  configureServer(server) {
+    server.middlewares.use('/api/deck-source', async (request, response) => {
+      try {
+        const requestUrl = new URL(request.url, 'http://localhost');
+        const body = await fetchDeckSource(
+          requestUrl.searchParams.get('url') || '',
+        );
+        response.writeHead(200, {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'private, max-age=300',
+        });
+        response.end(body);
+      } catch (error) {
+        response.writeHead(error instanceof DeckSourceError
+          ? error.status
+          : 502);
+        response.end(error instanceof Error ? error.message : String(error));
+      }
+    });
+  },
+});
 
 export default defineConfig(({ mode }) => {
   const buildTarget = mode === 'lib' ? 'lib' : 'website';
@@ -50,6 +101,7 @@ export default defineConfig(({ mode }) => {
     publicDir: false,
     plugins: [
       vue(),
+      ...(!isLib ? [deckSourceProxy()] : []),
       ...(isLib ? [viteStaticCopy({
         targets: [
           { src: 'packages/package.json', dest: '.', rename: { stripBase: 1 } },

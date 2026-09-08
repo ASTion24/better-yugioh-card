@@ -86,6 +86,22 @@ export class YugiohCard extends Card {
     return 'YugiohCard';
   }
 
+  get fontFamilyList() {
+    const common = ['ygo-tip', 'ygo-atk-def', 'ygo-link', 'ygo-password'];
+    if (this.data.font) {
+      return [...common, this.data.font];
+    }
+    const languageFontMap = {
+      sc: ['ygo-sc'],
+      tc: ['ygo-tc'],
+      jp: ['ygo-jp'],
+      kr: ['ygo-kr', 'ygo-kr-name', 'ygo-kr-race'],
+      en: ['ygo-en', 'ygo-en-italic', 'ygo-en-name', 'ygo-en-race'],
+      astral: ['ygo-astral'],
+    };
+    return [...common, ...(languageFontMap[this.data.language] || languageFontMap.sc)];
+  }
+
   draw() {
     this.drawCard();
     this.drawName();

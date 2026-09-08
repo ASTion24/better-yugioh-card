@@ -1,7 +1,8 @@
 {
-  "name": "yugioh-card",
+  "name": "better-yugioh-card",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.1.0-beta.1",
+  "description": "A lightweight Yu-Gi-Oh! card and competitive deck workbench.",
   "type": "module",
   "packageManager": "pnpm@10.32.1",
   "scripts": {
@@ -10,15 +11,24 @@
     "play": "vite --open /play/index.html",
     "build": "vite build",
     "build:lib": "vite build --mode lib",
+    "build:recognition-index": "node scripts/build-recognition-index.mjs",
     "preview": "vite preview",
     "test": "node --test",
-    "publish": "pnpm publish dist --registry https://registry.npmjs.org",
+    "test:e2e:setup": "python3 -m pip install --target .runtime/python -r requirements-e2e.txt && PYTHONPATH=.runtime/python python3 -m playwright install chromium",
+    "test:e2e": "pnpm test:e2e:workspace && pnpm test:e2e:analysis && pnpm test:e2e:recognition",
+    "test:e2e:analysis": "PYTHONPATH=.runtime/python python3 tests/e2e/playtest_analysis_e2e.py",
+    "test:e2e:recognition": "PYTHONPATH=.runtime/python python3 tests/e2e/image_recognition_e2e.py && PYTHONPATH=.runtime/python python3 tests/e2e/camera_recognition_e2e.py",
+    "test:e2e:workspace": "PYTHONPATH=.runtime/python python3 tests/e2e/workspace_e2e.py",
     "lint": "eslint",
     "lint-fix": "eslint --fix"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/kooriookami/yugioh-card"
+    "url": "https://github.com/ASTion24/better-yugioh-card.git"
+  },
+  "homepage": "https://astion24.github.io/better-yugioh-card/",
+  "bugs": {
+    "url": "https://github.com/ASTion24/better-yugioh-card/issues"
   },
   "keywords": [
     "yugioh-card",
@@ -28,33 +38,36 @@
     "leafer",
     "canvas"
   ],
-  "author": "kooriookami",
-  "license": "ISC",
+  "author": "ASTion24 and contributors",
+  "license": "MIT",
   "dependencies": {
-    "@element-plus/icons-vue": "^2.3.2",
+    "@iconify-icons/ri": "^2.0.0",
     "@leafer/node": "^2.0.4",
     "css-line-break": "^2.1.0",
-    "element-plus": "^2.13.6",
-    "json-editor-vue": "^0.18.1",
+    "fflate": "^0.8.3",
+    "jspdf": "^4.2.1",
     "leafer": "^2.0.4",
     "leafer-unified": "^1.0.3",
-    "lodash": "^4.17.23",
-    "lodash-es": "^4.17.23",
+    "lodash": "^4.18.1",
+    "lodash-es": "^4.18.1",
     "lodash-unified": "^1.0.3",
     "normalize.css": "^8.0.1",
-    "skia-canvas": "^2.0.2",
+    "sql.js": "^1.14.2",
+    "tesseract.js": "^7.0.0",
     "vue": "^3.5.30",
     "yugioh-card": "file:packages",
     "yugioh-card-v190": "npm:yugioh-card@1.9.2"
   },
   "devDependencies": {
     "@iconify/vue": "^5.0.0",
+    "@types/sql.js": "^1.4.11",
     "@vitejs/plugin-vue": "^6.0.5",
-    "eslint": "^10.1.0",
+    "eslint": "^9.39.5",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-vue": "^10.8.0",
     "globals": "^17.4.0",
     "sass-embedded": "^1.98.0",
+    "skia-canvas": "^3.0.8",
     "typescript": "^6.0.2",
     "vite": "^8.0.2",
     "vite-node": "^6.0.0",
@@ -65,7 +78,13 @@
     "node": ">= 22"
   },
   "pnpm": {
-    "allowBuilds": [
+    "overrides": {
+      "brace-expansion@^1": "1.1.18",
+      "brace-expansion@^5": "5.0.9",
+      "nanoid@^3": "3.3.18",
+      "postcss": "8.5.28"
+    },
+    "onlyBuiltDependencies": [
       "skia-canvas"
     ]
   }

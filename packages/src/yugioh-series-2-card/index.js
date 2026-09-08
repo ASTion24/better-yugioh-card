@@ -65,6 +65,10 @@ export class YugiohSeries2Card extends Card {
     return 'YugiohSeries2Card';
   }
 
+  get fontFamilyList() {
+    return ['ygo-tip', this.data.font || 'ygo-jp'];
+  }
+
   draw() {
     this.drawCard();
     this.drawName();

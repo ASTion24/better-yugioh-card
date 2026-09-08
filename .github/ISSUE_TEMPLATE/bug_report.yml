@@ -1,0 +1,60 @@
+name: Bug report
+description: Report a reproducible Better YGO problem
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not attach private deck files or card images that you are not allowed to share.
+
+  - type: dropdown
+    id: workspace
+    attributes:
+      label: Workspace
+      options:
+        - Unified launcher
+        - Card studio
+        - Card library
+        - Print workspace
+        - Card image recognition
+        - Playtest lab
+        - Batch production
+        - Project import/export
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the actual behavior and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Open ...
+        2. Import ...
+        3. Select ...
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Browser and operating system
+      placeholder: Chrome 140, macOS 15
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Additional evidence
+      description: Add console errors or screenshots after removing private data.

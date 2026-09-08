@@ -1,58 +1,99 @@
-<h1 align="center">🎉 游戏王卡片 - Yugioh Card 🎉</h1>
-
-<div align="center">
-  <p>简体中文 | <a href="./README.en.md">English</a></p>
-</div>
+<h1 align="center">Better YGO</h1>
 
 <p align="center">
-  <a href="https://www.npmjs.org/package/yugioh-card">
-    <img src="https://img.shields.io/npm/v/yugioh-card.svg">
+  轻量级游戏王卡片与竞技构筑工作台
+</p>
+
+<p align="center">
+  <a href="./README.en.md">English</a>
+  ·
+  <a href="https://github.com/ASTion24/better-yugioh-card/actions/workflows/ci.yml">
+    <img src="https://github.com/ASTion24/better-yugioh-card/actions/workflows/ci.yml/badge.svg" alt="CI">
   </a>
-  <a href="https://www.npmjs.org/package/yugioh-card">
-    <img src="https://img.shields.io/npm/dt/yugioh-card.svg">
-  </a>
-  <a href="LICENSE">
-    <img src="https://img.shields.io/badge/License-MIT-yellow.svg">
+  <a href="./LICENSE">
+    <img src="https://img.shields.io/badge/License-MIT-1c1d1b.svg" alt="MIT License">
   </a>
 </p>
 
-<p align="center">一个使用 Canvas 渲染游戏王卡片的工具</p>
-
 <p align="center">
-  <img src="src/assets/image/banner.jpg">
+  <img src=".github/assets/launcher.jpg" alt="Better YGO 统一启动台">
 </p>
 
-目前有 5 种卡片：🚀🚀🚀🚀🚀
+Better YGO 将制卡、卡组导入、图像识别、构筑分析、试手换备与打印交付放进同一个浏览器工作台。它面向实际构筑流程，不要求账户、云同步或本地全量卡库；项目和图片默认留在本机。
 
-- 1️⃣ 游戏王
-- 2️⃣ 超速决斗
-- 3️⃣ 游戏王卡背
-- 4️⃣ 场地中心卡
-- 5️⃣ 游戏王 2 期
+> 当前版本：`0.1.0-beta.1`。核心流程已经可用，外部卡片数据与先行卡内容仍受第三方服务可用性影响。
 
-## 🫡 特别感谢
+## 核心工作流
 
-- [LeaferJS](https://www.leaferjs.com/) 提供的强大图形渲染功能
-- [白羽幸鳥](https://tieba.baidu.com/home/main?id=tb.1.d6c63ffd.3YV5T6Q9Z7uIeVVhPlo8hg%3Ft%3D1654573649) 提供的高清卡模
+| 工作区 | 解决的问题 |
+| --- | --- |
+| 统一启动台 | 拖入图片、YDK、项目或工作区备份，粘贴 YDKe 与卡组链接 |
+| 单卡工房 | 数据库补全、高清重绘、异画/先行卡处理、裁图与 PNG 导出 |
+| 卡片资料库 | 按需查询卡片，将结果加入卡组或转为可编辑原创卡 |
+| 打印工作台 | YDK 到 A4 PDF，支持双面卡背、校准、最密 11 张与省裁剪 10 张排版 |
+| 卡牌图像识别 | 上传或摄像头拍摄单卡/多卡，复核后导出标准 YDK |
+| 试手与概率实验室 | 角色标记、精确概率、组合条件、失败诊断、换备方案与历史统计 |
+| 批量制卡 | CSV/JSON 导入、质量审计、批量样式、生产包与打印交付 |
 
-## 🚩 在线演示
+项目以 `.ygoproject` v3 保存，工作区可整体备份为 `.ygoworkspace`。IndexedDB 自动保存、revision 检查与 `BroadcastChannel` 用于避免多标签页静默覆盖。
 
-[在线演示](https://kooriookami.github.io/yugioh-card/)
+<table>
+  <tr>
+    <td><img src=".github/assets/recognition.jpg" alt="卡牌图像识别"></td>
+    <td><img src=".github/assets/batch.jpg" alt="批量制卡生产工作台"></td>
+  </tr>
+</table>
 
-## ⚡ 快速开始
+## 设计边界
 
-开发环境要求：Node.js 22+，pnpm。
+- 不维护全量本地卡片数据库，只按当前任务请求必要记录。
+- 图像识别使用约 800 KB 的视觉指纹索引，数字 OCR 仅在需要时加载。
+- 原始识别图片和切片不会写入项目文件。
+- 首期识别面向规则截图、单卡照片和无遮挡平铺卡组；严重反光、遮挡或散乱堆叠需要人工复核。
+- 标准 YDK/YDKe 只能保存官方数字卡号，原创卡数据保存在 Better YGO 项目中。
 
-`pnpm add yugioh-card`
+更多隐私与第三方服务说明见 [PRIVACY.md](./PRIVACY.md) 和 [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)。
+计划中的对局环境实验室、全局实卡库存与连续摄像头盘点见
+[ROADMAP.md](./ROADMAP.md)。参与开发前请阅读
+[CONTRIBUTING.md](./CONTRIBUTING.md)。
 
-### 仓库开发
+## 快速开始
+
+需要 Node.js 22+ 与 pnpm 10+。
+
+### 本地开发
 
 ```bash
-# Node.js 22+
 pnpm install
 pnpm dev
+```
+
+开发服务器默认从 `http://localhost:5173` 启动。
+
+### 验证
+
+```bash
+pnpm lint
+pnpm test
 pnpm build
-pnpm build:lib
+pnpm test:e2e:setup
+pnpm test:e2e
+```
+
+E2E 安装命令会把 Python 依赖和 Chromium 放入本地 `.runtime`，不会提交到仓库。
+
+### 部署
+
+`pnpm build` 会生成静态站点。GitHub Actions 可直接发布 GitHub Pages。YGOPRODeck 页面导入需要仓库中的 `/api/deck-source` Serverless 入口；纯静态部署可通过 `VITE_DECK_SOURCE_PROXY` 指向自己的代理。代理仅允许 HTTPS `ygoprodeck.com`，响应上限为 2 MB。
+
+## 渲染内核
+
+本项目基于 [kooriookami/yugioh-card](https://github.com/kooriookami/yugioh-card) 的 Canvas 渲染内核继续开发，并保留其 MIT 许可与原作者署名。仓库内 `packages/` 是兼容层，不会以原包名发布。
+
+如只需要原始渲染库：
+
+```bash
+pnpm add yugioh-card
 ```
 
 ### 浏览器
@@ -69,11 +110,13 @@ const card = new YugiohCard({
   resourcePath: 'xxx', // 静态资源路径，把 src/assets/yugioh-card 文件夹复制到你的项目中或者服务器上
 });
 
-// 导出图片，更多导出参数请参考 https://www.leaferjs.com/ui/guide/basic/export.html
-card.leafer.export('xxx.png', {
+// ready() 会等待字体和图像资源；export() 会在资源就绪后导出。
+await card.export('xxx.png', {
   screenshot: true,
   pixelRatio: devicePixelRatio,
 });
+
+card.destroy();
 ```
 
 ### Node.js

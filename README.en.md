@@ -1,58 +1,114 @@
-<h1 align="center">🎉 Yu-Gi-Oh! Card - Yugioh Card 🎉</h1>
-
-<div align="center">
-  <p><a href="./README.md">简体中文</a> | English</p>
-</div>
+<h1 align="center">Better YGO</h1>
 
 <p align="center">
-  <a href="https://www.npmjs.org/package/yugioh-card">
-    <img src="https://img.shields.io/npm/v/yugioh-card.svg">
+  A lightweight Yu-Gi-Oh! card and competitive deck workbench
+</p>
+
+<p align="center">
+  <a href="./README.md">简体中文</a>
+  ·
+  <a href="https://github.com/ASTion24/better-yugioh-card/actions/workflows/ci.yml">
+    <img src="https://github.com/ASTion24/better-yugioh-card/actions/workflows/ci.yml/badge.svg" alt="CI">
   </a>
-  <a href="https://www.npmjs.org/package/yugioh-card">
-    <img src="https://img.shields.io/npm/dt/yugioh-card.svg">
-  </a>
-  <a href="LICENSE">
-    <img src="https://img.shields.io/badge/License-MIT-yellow.svg">
+  <a href="./LICENSE">
+    <img src="https://img.shields.io/badge/License-MIT-1c1d1b.svg" alt="MIT License">
   </a>
 </p>
 
-<p align="center">A tool for rendering Yu-Gi-Oh! cards using Canvas</p>
-
 <p align="center">
-  <img src="src/assets/image/banner.jpg">
+  <img src=".github/assets/launcher.jpg" alt="Better YGO unified launcher">
 </p>
 
-Currently there are 5 types of cards: 🚀🚀🚀🚀🚀
+Better YGO brings card creation, deck import, image recognition, build analysis,
+playtesting, Side Deck planning, printing, and delivery into one browser
+workspace. It requires no account, cloud sync, or bundled full card database;
+projects and uploaded images stay on the device by default.
 
-- 1️⃣ Yu-Gi-Oh!
-- 2️⃣ Rush Duel
-- 3️⃣ Yu-Gi-Oh! Card Back
-- 4️⃣ Field Center Card
-- 5️⃣ Yu-Gi-Oh! Series 2
+> Current release: `0.1.0-beta.1`. Core workflows are usable. Availability of
+> remote card data and prerelease records still depends on third-party services.
 
-## 🫡 Special Thanks
+## Core Workflows
 
-- [LeaferJS](https://www.leaferjs.com/) for the powerful graphics rendering capabilities
-- [白羽幸鳥](https://tieba.baidu.com/home/main?id=tb.1.d6c63ffd.3YV5T6Q9Z7uIeVVhPlo8hg%3Ft%3D1654573649) for providing high-resolution card templates
+| Workspace | What it solves |
+| --- | --- |
+| Unified launcher | Drop images, YDK, projects, or backups; paste YDKe and deck links |
+| Card studio | Database completion, high-resolution rendering, artwork cropping, and PNG export |
+| Card library | On-demand card search with deck insertion and editable custom-card drafts |
+| Print workspace | YDK-to-A4 PDF, duplex backs, calibration, dense 11-card and cut-efficient 10-card layouts |
+| Card image recognition | Upload or capture single/multiple cards, review results, and export standard YDK |
+| Playtest lab | Roles, exact odds, custom goals, failure diagnosis, Side plans, and trial history |
+| Batch production | CSV/JSON import, quality audit, bulk styles, production packages, and print handoff |
 
-## 🚩 Online Demo
+Projects use `.ygoproject` v3 and complete workspaces can be backed up as
+`.ygoworkspace`. IndexedDB autosave, revision checks, and `BroadcastChannel`
+notifications prevent silent overwrites between tabs.
 
-[Online Demo](https://kooriookami.github.io/yugioh-card/)
+<table>
+  <tr>
+    <td><img src=".github/assets/recognition.jpg" alt="Card image recognition"></td>
+    <td><img src=".github/assets/batch.jpg" alt="Batch production workspace"></td>
+  </tr>
+</table>
 
-## ⚡ Quick Start
+## Design Boundaries
 
-Requirements: Node.js 22+ and pnpm.
+- No bundled full card database; only records required by the current task are requested.
+- Recognition uses an approximately 800 KB visual fingerprint index and loads numeric OCR only when needed.
+- Source images and recognition crops are never persisted in project files.
+- Initial recognition targets regular screenshots, single-card photos, and unobstructed flat lays. Heavy glare, overlap, and scattered cards require manual review.
+- Standard YDK/YDKe exports contain official numeric IDs only. Custom-card data stays in Better YGO projects.
 
-`pnpm add yugioh-card`
+See [PRIVACY.md](./PRIVACY.md) and
+[THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md) for data handling and
+third-party service details.
+See [ROADMAP.md](./ROADMAP.md) for planned matchup, inventory, and continuous
+camera workflows, and [CONTRIBUTING.md](./CONTRIBUTING.md) before contributing.
 
-### Workspace Development
+## Quick Start
+
+Requires Node.js 22+ and pnpm 10+.
+
+### Local Development
 
 ```bash
-# Node.js 22+
 pnpm install
 pnpm dev
+```
+
+The development server starts at `http://localhost:5173` by default.
+
+### Verification
+
+```bash
+pnpm lint
+pnpm test
 pnpm build
-pnpm build:lib
+pnpm test:e2e:setup
+pnpm test:e2e
+```
+
+The E2E setup command installs Python packages and Chromium under the local
+`.runtime` directory, which is excluded from version control.
+
+### Deployment
+
+`pnpm build` creates the static site. The included GitHub Actions workflow can
+publish it to GitHub Pages. YGOPRODeck page imports require the Serverless
+`/api/deck-source` endpoint; static hosts can set `VITE_DECK_SOURCE_PROXY` to
+their own proxy. The proxy only accepts HTTPS `ygoprodeck.com` URLs and limits
+responses to 2 MB.
+
+## Rendering Core
+
+Better YGO builds on the Canvas renderer from
+[kooriookami/yugioh-card](https://github.com/kooriookami/yugioh-card), retaining
+its MIT license and original attribution. The local `packages/` directory is a
+compatibility layer and is not published under the upstream package name.
+
+For the original standalone renderer:
+
+```bash
+pnpm add yugioh-card
 ```
 
 ### Browser
@@ -69,11 +125,13 @@ const card = new YugiohCard({
   resourcePath: 'xxx', // path to static resources, copy src/assets/yugioh-card folder to your project or server
 });
 
-// Export image, for more export options refer to https://www.leaferjs.com/ui/guide/basic/export.html
-card.leafer.export('xxx.png', {
+// ready() waits for fonts and images; export() waits before rendering.
+await card.export('xxx.png', {
   screenshot: true,
   pixelRatio: devicePixelRatio,
 });
+
+card.destroy();
 ```
 
 ### Node.js

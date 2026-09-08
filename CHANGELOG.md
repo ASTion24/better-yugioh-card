@@ -1,5 +1,25 @@
 ## Changelog
 
+### 0.1.0-beta.1 - Better YGO
+
+_2026-09-08_
+
+- Added a unified launcher for card, deck, recognition, playtest, and
+  production workflows.
+- Added YDK, YDKe, OURYGO, GitHub Raw, YGOPRODeck, and image-based deck import.
+- Added high-resolution printing, dense and cut-efficient layouts, duplex card
+  backs, calibration, preflight checks, and complete delivery packages.
+- Added project persistence, workspace backup, version migration, revision
+  checks, and cross-tab update notifications.
+- Added exact opening-hand probabilities, custom card roles, combination goals,
+  hand history, snapshots, Side plans, banlist checks, and inventory shortages.
+- Added local visual card recognition with review, YDK export, and single-card
+  or multi-card camera capture.
+- Added batch quality auditing, bulk style reuse, selective rendering,
+  production manifests, and direct print handoff.
+- Preserved the original `yugioh-card` rendering API as a private compatibility
+  package.
+
 ### 1.9.2
 
 _2026-03-22_

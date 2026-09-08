@@ -1,0 +1,1 @@
+var e=``+new URL(`sql-wasm-DfANybxk.wasm`,import.meta.url).href;export{e as default};

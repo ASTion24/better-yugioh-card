@@ -76,6 +76,8 @@ export default defineConfig([
   },
   {
     ignores: [
+      '.runtime',
+      'dist',
       'node_modules',
       'docs',
       'public',

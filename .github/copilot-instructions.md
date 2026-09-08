@@ -1,26 +1,26 @@
-# 项目指南
+# Better YGO 项目指南
 
 ## 代码风格
 
 - 遵循 [eslint.config.js](../eslint.config.js) 中现有的 JavaScript 与 Vue 风格：使用 ES modules、分号、单引号，以及按分组排序的 import。
 - 变更范围应严格限制在当前任务涉及的区域。不要手动修改 [docs/](../docs/) 中的生成产物，也不要手动编辑 `dist/` 中的发布文件。
-- 保持当前的职责拆分：库源码位于 [packages/src/](../packages/src/)，演示站点位于 [src/](../src/)。
+- 保持当前职责拆分：渲染内核位于 [packages/src/](../packages/src/)，Better YGO 应用位于 [src/](../src/)。
 
 ## 架构
 
 - 这个仓库主要包含两个工作面：
-  - 可发布的卡片渲染库，位于 [packages/src/](../packages/src/)
-  - Vue 演示应用与备用 playground，位于 [src/](../src/) 和 [play/](../play/)
+  - 私有兼容渲染内核，位于 [packages/src/](../packages/src/)
+  - Vue 多入口工作台与备用 playground，位于 [src/](../src/) 和 [play/](../play/)
 - 各卡片类都继承自 [packages/src/card/index.js](../packages/src/card/index.js) 中的共享基类。可复用的渲染逻辑或环境适配逻辑应优先放在该基类或 [packages/src/utils/index.js](../packages/src/utils/index.js)，不要在不同卡片类型之间重复实现。
 - 对外导出统一集中在 [packages/index.js](../packages/index.js)。新增库入口或重命名导出时，必须同步更新这里。
 - 构建模式有明确区别：
   - `pnpm build` 会把网站构建到 [docs/](../docs/)
-  - `pnpm build:lib` 会把 npm 库构建到 `dist/`
+  - `pnpm build:lib` 会把兼容渲染内核构建到 `dist/`
   - Vite 会在 [vite.config.js](../vite.config.js) 中根据 mode 切换行为
 
 ## 构建与验证
 
-- 使用 Node 20+ 和 pnpm。
+- 使用 Node 22+ 和 pnpm 10+。
 - 使用 `pnpm install` 安装依赖。
 - 常用命令：
   - `pnpm dev`：启动演示站点
@@ -28,13 +28,16 @@
   - `pnpm dev:node`：启动 [src/server.js](../src/server.js) 中的 Node 渲染示例
   - `pnpm build`：在修改演示站点后执行
   - `pnpm build:lib`：在修改库代码或打包配置后执行
-  - `pnpm test`：运行 `packages/src/compress-text/__tests__/` 下的 Node 原生回归测试
+  - `pnpm test`：运行全部 Node 原生单元测试
+  - `pnpm test:e2e:setup`：在 `.runtime/` 中安装 Playwright 测试环境
+  - `pnpm test:e2e`：运行工作台、试手与图像识别浏览器回归
   - `pnpm lint` 或 `pnpm lint-fix`：执行风格检查与修复
 - 选择与改动范围匹配的验证命令，不要每次都默认跑完整构建。
 
 ## 约定
 
 - 将 [README.md](../README.md) 和 [README.en.md](../README.en.md) 视为主要使用文档。引用它们即可，不要在说明文件里重复嵌入 API 细节。
+- 保持本地优先和轻量化，不引入账户、云同步、全量卡片数据库或大型状态管理框架。
 - [src/assets/demo/](../src/assets/demo/) 下的演示数据是卡片数据结构和 UI 示例的标准参考。
 - 资源加载依赖运行环境：
   - 浏览器环境下，`resourcePath` 应指向复制后的 [src/assets/yugioh-card/](../src/assets/yugioh-card/) 静态资源目录

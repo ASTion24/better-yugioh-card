@@ -1,0 +1,1 @@
+var e={type:`normal`,logo:`ocg`,konami:!0,register:!0,radius:!0,scale:1};export{e as default};

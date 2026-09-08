@@ -1,0 +1,1 @@
+var e={image:``+new URL(`field-center-DW3BjrXg.jpg`,import.meta.url).href,radius:!0,cardBack:!1,scale:1};export{e as default};

@@ -1,0 +1,1 @@
+var e=`https://raw.githubusercontent.com/kooriookami/yugioh-card/92462bbd2aa3aa0075ebcc9b633bdc05137fd7ac/src/assets/yugioh-card`;export{e as t};

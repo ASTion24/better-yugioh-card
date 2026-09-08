@@ -25,6 +25,10 @@ export class Card {
   view = null;
   resourcePath = null;
   skia = null;
+  resourceReady = Promise.resolve();
+  destroyed = false;
+  /** @type {symbol | null} */
+  renderVersion = null;
 
   constructor(data = {}) {
     this.view = data.view;
@@ -38,22 +42,25 @@ export class Card {
       }
       useCanvas('skia', this.skia);
     }
-
-    const fontPath = fontPathMap[this.tag];
-    if (fontPath) {
-      if (isNode) {
-        loadFontNode(`${this.resourcePath}${fontPath}`, this.skia); // 同步
-      } else {
-        loadFontBrowser(`${this.resourcePath}${fontPath}`).then(() => { // 异步，加载完再绘制一次
-          this.draw();
-        });
-      }
-    }
   }
 
   setData(data = {}) {
+    if (this.destroyed) {
+      throw new Error('card instance has been destroyed');
+    }
     Object.assign(this.data, data);
+    const version = Symbol('render');
+    this.renderVersion = version;
+    const fontReady = this.loadFonts();
     this.draw();
+    this.resourceReady = fontReady.then(() => {
+      if (!this.destroyed && this.renderVersion === version) {
+        this.draw();
+      }
+    });
+    // Mark the promise as handled while preserving rejection for ready()/export().
+    this.resourceReady.catch(() => {});
+    return this.resourceReady;
   }
 
   initLeafer() {
@@ -66,6 +73,57 @@ export class Card {
 
   draw() {
     // need to be overridden
+  }
+
+  get fontFamilyList() {
+    return [];
+  }
+
+  loadFonts() {
+    const fontPath = fontPathMap[this.tag];
+    if (!fontPath || !this.resourcePath) {
+      return Promise.resolve();
+    }
+    const fullPath = `${this.resourcePath}${fontPath}`;
+    if (isNode) {
+      loadFontNode(fullPath, this.skia, this.fontFamilyList);
+      return Promise.resolve();
+    }
+    return loadFontBrowser(fullPath, this.fontFamilyList);
+  }
+
+  async ready() {
+    let pending = this.resourceReady;
+    await pending;
+    if (pending !== this.resourceReady) {
+      return this.ready();
+    }
+    if (!this.leafer || this.destroyed) {
+      throw new Error('card instance is not available');
+    }
+    await new Promise(resolve => {
+      this.leafer.waitViewCompleted(resolve);
+      this.leafer.requestRender(true);
+    });
+    return this;
+  }
+
+  async export(filename, options = {}) {
+    await this.ready();
+    const result = await this.leafer.export(filename, options);
+    if (result.error) {
+      throw result.error;
+    }
+    return result;
+  }
+
+  destroy() {
+    if (this.destroyed) {
+      return;
+    }
+    this.destroyed = true;
+    this.leafer?.destroy();
+    this.leafer = null;
   }
 
   listenImageStatus(imageLeaf) {

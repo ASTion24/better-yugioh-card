@@ -62,6 +62,15 @@ export class RushDuelCard extends Card {
     return 'RushDuelCard';
   }
 
+  get fontFamilyList() {
+    const common = ['rd-tip', 'rd-atk-def'];
+    const languageFontMap = {
+      sc: ['rd-sc', 'rd-sc-name'],
+      jp: ['rd-jp', 'rd-jp-name', 'rd-jp-effect'],
+    };
+    return [...common, ...(languageFontMap[this.data.language] || languageFontMap.sc)];
+  }
+
   draw() {
     this.drawCard();
     this.drawName();

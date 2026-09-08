@@ -1,1 +1,7 @@
-* text=auto eol=lf
+docs/assets/** linguist-generated=true
+docs/assets/*.js whitespace=-trailing-space
+src/assets/recognition/*.bin binary
+src/assets/**/*.woff2 binary
+src/assets/**/*.png binary
+src/assets/**/*.jpg binary
+src/assets/**/*.webp binary
