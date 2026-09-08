@@ -6,7 +6,7 @@
         <strong>Better YGO</strong>
       </a>
       <div class="launcher-status">
-        <span>{{ projects.length }} 个本地项目</span>
+        <span>{{ decks.length }} 套本地卡组</span>
         <i />
         <span>本地存储</span>
       </div>
@@ -41,8 +41,8 @@
             >
               <Icon :icon="uploadCloud2Line" />
               <span>
-                <strong>{{ quickBusy ? '正在处理' : '打开图片或文件' }}</strong>
-                <small>图片、YDK、项目或工作区</small>
+                <strong>{{ quickBusy ? '正在导入卡组' : '打开图片或文件以导入卡组' }}</strong>
+                <small>卡组截图、YDK 或卡组备份</small>
               </span>
               <Icon :icon="arrowRightLine" />
             </button>
@@ -58,8 +58,8 @@
               <textarea
                 v-model="quickText"
                 rows="1"
-                aria-label="粘贴 YDK、YDKe 或卡组链接"
-                placeholder="粘贴 YDK、YDKe 或卡组链接"
+                aria-label="粘贴 YDK、YDKe 或卡组链接以导入卡组"
+                placeholder="粘贴 YDK、YDKe 或卡组链接以导入卡组"
                 @keydown.meta.enter.prevent="importQuickText"
                 @keydown.ctrl.enter.prevent="importQuickText"
               />
@@ -104,35 +104,35 @@
       <DeckImageImporter
         ref="imageImporter"
         triggerless
-        import-label="进入打印工作台"
+        import-label="导入卡组并编辑"
         @import="openRecognizedDeck"
         @notice="workspaceNotice = $event"
       />
 
-      <section class="recent-projects">
+      <section class="recent-projects" aria-label="最近卡组">
         <div class="recent-heading">
-          <h2>最近项目</h2>
+          <h2>最近卡组</h2>
           <div class="recent-tools">
-            <label v-if="projects.length" class="project-search">
+            <label v-if="decks.length" class="project-search">
               <Icon :icon="searchLine" />
               <input
-                v-model="projectQuery"
+                v-model="deckQuery"
                 type="search"
-                aria-label="搜索本地项目"
-                placeholder="搜索"
+                aria-label="搜索本地卡组"
+                placeholder="搜索卡组"
               >
             </label>
             <button
               type="button"
-              title="备份全部项目"
-              :disabled="!projects.length"
+              title="备份全部卡组"
+              :disabled="!decks.length"
               @click="backupWorkspace"
             >
               <Icon :icon="archiveLine" />
             </button>
             <button
               type="button"
-              title="恢复工作区备份"
+              title="恢复卡组备份"
               @click="backupFileInput?.click()"
             >
               <Icon :icon="folderOpenLine" />
@@ -147,35 +147,36 @@
           </div>
         </div>
 
-        <template v-if="filteredProjects.length">
+        <template v-if="filteredDecks.length">
           <div class="project-list">
             <button
-              v-for="project in visibleProjects"
-              :key="project.id"
+              v-for="deck in visibleDecks"
+              :key="deck.id"
               type="button"
-              @click="openProject(project)"
+              :aria-label="`编辑卡组 ${deck.name}`"
+              @click="openDeck(deck)"
             >
-              <Icon :icon="projectMeta(project).icon" />
+              <Icon :icon="layoutGridLine" />
               <span>
-                <strong>{{ project.name }}</strong>
-                <small>{{ projectSummary(project) }}</small>
+                <strong>{{ deck.name }}</strong>
+                <small>{{ deckSummary(deck) }}</small>
               </span>
               <Icon :icon="arrowRightUpLine" />
             </button>
           </div>
           <button
-            v-if="filteredProjects.length > 6 && !projectQuery"
+            v-if="filteredDecks.length > 6 && !deckQuery"
             class="project-list-toggle"
             type="button"
-            @click="showAllProjects = !showAllProjects"
+            @click="showAllDecks = !showAllDecks"
           >
-            <Icon :icon="showAllProjects ? arrowUpSLine : arrowDownSLine" />
-            <span>{{ showAllProjects ? '收起项目' : `查看全部 ${filteredProjects.length} 项` }}</span>
+            <Icon :icon="showAllDecks ? arrowUpSLine : arrowDownSLine" />
+            <span>{{ showAllDecks ? '收起卡组' : `查看全部 ${filteredDecks.length} 套卡组` }}</span>
           </button>
         </template>
         <div v-else class="empty-projects">
           <Icon :icon="archiveStackLine" />
-          <span>{{ loadError || (projectQuery ? '没有匹配项目' : '暂无本地项目') }}</span>
+          <span>{{ loadError || (deckQuery ? '没有匹配卡组' : '暂无本地卡组') }}</span>
         </div>
       </section>
     </main>
@@ -184,7 +185,7 @@
 
     <footer>
       <span>BETTER YGO</span>
-      <span>LOCAL WORKSPACE · 2026</span>
+      <span>LOCAL DECKS · 2026</span>
     </footer>
   </div>
 </template>
@@ -225,19 +226,19 @@ import {
 const workspaces = [
   {
     key: 'card',
-    name: '单卡工房',
+    name: '单卡DIY工坊',
     href: './editor/',
     icon: idCardLine,
   },
   {
     key: 'deck',
-    name: '打印工作台',
+    name: '卡组打印工作台',
     href: './print/',
     icon: layoutGridLine,
   },
   {
     key: 'recognize',
-    name: '卡牌图像识别',
+    name: '卡牌卡组图像识别',
     href: './recognize/',
     icon: imageCircleAiLine,
   },
@@ -261,28 +262,10 @@ const workspaces = [
   },
 ];
 
-const projectTypeMap = {
-  batch: {
-    label: '批量制卡',
-    icon: stackLine,
-    href: './batch/',
-  },
-  card: {
-    label: '单卡项目',
-    icon: idCardLine,
-    href: './editor/',
-  },
-  deck: {
-    label: '卡组项目',
-    icon: layoutGridLine,
-    href: './print/',
-  },
-};
-
-const projects = ref([]);
+const decks = ref([]);
 const loadError = ref('');
-const projectQuery = ref('');
-const showAllProjects = ref(false);
+const deckQuery = ref('');
+const showAllDecks = ref(false);
 const backupFileInput = ref(null);
 const imageImporter = ref(null);
 const isQuickDragging = ref(false);
@@ -293,15 +276,13 @@ const quickStatus = ref('');
 const quickText = ref('');
 const workspaceNotice = ref('');
 
-const filteredProjects = computed(() => {
-  const query = projectQuery.value.trim().toLocaleLowerCase();
-  if (!query) return projects.value;
-  return projects.value.filter(project => {
-    const meta = projectMeta(project);
-    const analysisMeta = project.playtest?.analysis?.metadata || {};
+const filteredDecks = computed(() => {
+  const query = deckQuery.value.trim().toLocaleLowerCase();
+  if (!query) return decks.value;
+  return decks.value.filter(deck => {
+    const analysisMeta = deck.playtest?.analysis?.metadata || {};
     return [
-      project.name,
-      meta.label,
+      deck.name,
       analysisMeta.format,
       analysisMeta.event,
       ...(analysisMeta.tags || []),
@@ -311,20 +292,16 @@ const filteredProjects = computed(() => {
   });
 });
 
-const visibleProjects = computed(() => {
-  if (projectQuery.value.trim() || showAllProjects.value) {
-    return filteredProjects.value;
+const visibleDecks = computed(() => {
+  if (deckQuery.value.trim() || showAllDecks.value) {
+    return filteredDecks.value;
   }
-  return filteredProjects.value.slice(0, 6);
+  return filteredDecks.value.slice(0, 6);
 });
 
-const projectMeta = project => projectTypeMap[project.kind || 'deck'] ||
-  projectTypeMap.deck;
-
-const openSavedProject = project => {
-  const meta = projectMeta(project);
-  setActiveProjectId(project.id, project.kind || 'deck');
-  location.href = meta.href;
+const openSavedDeck = deck => {
+  setActiveProjectId(deck.id, 'deck');
+  location.href = './print/';
 };
 
 const saveImportedDeck = async (deck, fallbackName = '') => {
@@ -347,12 +324,15 @@ const saveImportedDeck = async (deck, fallbackName = '') => {
       side: true,
     },
   });
-  openSavedProject(saved);
+  openSavedDeck(saved);
 };
 
 const importProjectText = async value => {
-  const saved = await saveProject(parseProject(value));
-  openSavedProject(saved);
+  const imported = parseProject(value);
+  if (imported.kind !== 'deck') {
+    throw new Error('请选择卡组备份文件');
+  }
+  openSavedDeck(await saveProject(imported));
 };
 
 const handleQuickFile = async file => {
@@ -372,9 +352,9 @@ const handleQuickFile = async file => {
     }
     const value = await file.text();
     if (lowerName.endsWith('.ygoworkspace')) {
-      const restored = await restoreWorkspace(value);
-      await refreshProjects();
-      quickStatus.value = `已恢复 ${restored.length} 个项目`;
+      const restored = await restoreWorkspace(value, { kind: 'deck' });
+      await refreshDecks();
+      quickStatus.value = `已恢复 ${restored.length} 套卡组`;
       return;
     }
     if (lowerName.endsWith('.ygoproject')) {
@@ -384,16 +364,16 @@ const handleQuickFile = async file => {
     if (lowerName.endsWith('.json')) {
       const format = JSON.parse(value)?.format;
       if (format === 'yugioh-card-workspace') {
-        const restored = await restoreWorkspace(value);
-        await refreshProjects();
-        quickStatus.value = `已恢复 ${restored.length} 个项目`;
+        const restored = await restoreWorkspace(value, { kind: 'deck' });
+        await refreshDecks();
+        quickStatus.value = `已恢复 ${restored.length} 套卡组`;
         return;
       }
       if (format === 'yugioh-card-project') {
         await importProjectText(value);
         return;
       }
-      throw new Error('JSON 不是可识别的项目或工作区文件');
+      throw new Error('JSON 不是可识别的卡组或工作区备份');
     }
     await saveImportedDeck(
       await resolveDeckInput(value),
@@ -448,13 +428,18 @@ const openRecognizedDeck = async payload => {
   }
 };
 
-const projectSummary = project => {
-  const analysisMeta = project.playtest?.analysis?.metadata || {};
+const deckSummary = deck => {
+  const analysisMeta = deck.playtest?.analysis?.metadata || {};
+  const sections = [
+    `${deck.deck?.main?.length || 0} 主`,
+    `${deck.deck?.extra?.length || 0} 额外`,
+    `${deck.deck?.side?.length || 0} 副卡组`,
+  ];
   const details = [
-    projectMeta(project).label,
+    ...sections,
     analysisMeta.event,
     ...(analysisMeta.tags || []).slice(0, 2),
-    formatUpdatedAt(project.updatedAt),
+    formatUpdatedAt(deck.updatedAt),
   ].filter(Boolean);
   return details.join(' · ');
 };
@@ -471,12 +456,12 @@ const formatUpdatedAt = value => {
   }).format(date);
 };
 
-const openProject = project => {
-  openSavedProject(project);
+const openDeck = deck => {
+  openSavedDeck(deck);
 };
 
-const refreshProjects = async () => {
-  projects.value = await listProjects();
+const refreshDecks = async () => {
+  decks.value = await listProjects('deck');
 };
 
 const downloadText = (content, filename) => {
@@ -496,10 +481,10 @@ const downloadText = (content, filename) => {
 const backupWorkspace = () => {
   const date = new Date().toISOString().slice(0, 10);
   downloadText(
-    serializeWorkspace(projects.value),
-    `yugioh-card-workspace-${date}.ygoworkspace`,
+    serializeWorkspace(decks.value),
+    `better-ygo-decks-${date}.ygoworkspace`,
   );
-  workspaceNotice.value = `已备份 ${projects.value.length} 个项目`;
+  workspaceNotice.value = `已备份 ${decks.value.length} 套卡组`;
 };
 
 const restoreWorkspaceFile = async event => {
@@ -508,9 +493,11 @@ const restoreWorkspaceFile = async event => {
   if (!file) return;
   loadError.value = '';
   try {
-    const restored = await restoreWorkspace(await file.text());
-    await refreshProjects();
-    workspaceNotice.value = `已恢复 ${restored.length} 个项目`;
+    const restored = await restoreWorkspace(await file.text(), {
+      kind: 'deck',
+    });
+    await refreshDecks();
+    workspaceNotice.value = `已恢复 ${restored.length} 套卡组`;
   } catch (error) {
     loadError.value = error instanceof Error ? error.message : String(error);
     workspaceNotice.value = '';
@@ -519,7 +506,7 @@ const restoreWorkspaceFile = async event => {
 
 onMounted(async () => {
   try {
-    await refreshProjects();
+    await refreshDecks();
   } catch (error) {
     loadError.value = error instanceof Error ? error.message : String(error);
   }

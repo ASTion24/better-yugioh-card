@@ -231,7 +231,7 @@ export const serializeInspectionReport = (project, issues) => {
     return result;
   }, {});
   return [
-    `项目：${project?.name || '未命名卡组'}`,
+    `卡组：${project?.name || '未命名卡组'}`,
     `检查时间：${new Date().toISOString()}`,
     `结果：${counts.error || 0} 个错误，${counts.warning || 0} 个警告`,
     '',

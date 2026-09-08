@@ -184,7 +184,7 @@ with sync_playwright() as playwright:
 
     page.get_by_role(
         "button",
-        name="卡牌图像识别",
+        name="卡牌卡组图像识别",
         exact=False,
     ).click()
     page.locator(
@@ -230,7 +230,7 @@ with sync_playwright() as playwright:
     artwork_fixture = create_artwork_grid(visual_page)
     visual_page.get_by_role(
         "button",
-        name="卡牌图像识别",
+        name="卡牌卡组图像识别",
         exact=False,
     ).click()
     visual_page.locator(
@@ -274,7 +274,7 @@ with sync_playwright() as playwright:
     sections_fixture = create_structured_deck_sheet(sections_page)
     sections_page.get_by_role(
         "button",
-        name="卡牌图像识别",
+        name="卡牌卡组图像识别",
         exact=False,
     ).click()
     sections_page.locator(
@@ -336,7 +336,7 @@ with sync_playwright() as playwright:
     pending_fixture = create_unknown_card(pending_page)
     pending_page.get_by_role(
         "button",
-        name="卡牌图像识别",
+        name="卡牌卡组图像识别",
         exact=False,
     ).click()
     pending_page.locator(
@@ -391,7 +391,7 @@ with sync_playwright() as playwright:
     home_page.goto(f"{BASE_URL}/", wait_until="domcontentloaded")
     image_workspace = home_page.get_by_role(
         "link",
-        name="卡牌图像识别",
+        name="卡牌卡组图像识别",
         exact=False,
     )
     assert image_workspace.get_attribute("href") == "./recognize/"
@@ -494,7 +494,7 @@ with sync_playwright() as playwright:
     mobile.wait_for_selector(".print-app")
     mobile.get_by_role(
         "button",
-        name="卡牌图像识别",
+        name="卡牌卡组图像识别",
         exact=False,
     ).click()
     mobile.locator(

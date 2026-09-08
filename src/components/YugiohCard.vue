@@ -4,7 +4,7 @@
       <a class="studio-brand" href="../">
         <span class="brand-seal">YG</span>
         <div>
-          <strong>单卡工房</strong>
+          <strong>单卡DIY工坊</strong>
           <span>CARD STUDIO</span>
         </div>
       </a>
@@ -39,15 +39,15 @@
           <Icon icon="ri:archive-drawer-line" />
           <span>卡片库</span>
         </a>
-        <a href="../print/" title="打印工作台">
+        <a href="../print/" title="卡组打印工作台">
           <Icon icon="ri:printer-line" />
-          <span>打印工作台</span>
+          <span>卡组打印</span>
         </a>
         <a href="../batch/" title="批量制卡">
           <Icon icon="ri:stack-line" />
           <span>批量制卡</span>
         </a>
-        <button type="button" title="加入当前批量项目" @click="addCurrentToBatch">
+        <button type="button" title="加入当前批量制卡方案" @click="addCurrentToBatch">
           <Icon icon="ri:folder-transfer-line" />
           <span>加入批量</span>
         </button>
@@ -70,7 +70,8 @@
       class="studio-project-bar"
       :project-id="activeProjectId"
       :name="projectName"
-      name-placeholder="单卡项目名称"
+      name-placeholder="单卡草稿名称"
+      entity-label="单卡草稿"
       :projects="projects"
       @select="selectProject"
       @rename="projectName = $event"
@@ -1171,7 +1172,7 @@ async function applyDatabaseResult(result) {
   databaseQuery.value = matchedData.name;
   if (!databaseError.value) {
     databaseNotice.value = resolved.alternateArtwork
-      ? `已载入 ${matchedData.name} · ${resolved.artworkId}；打印工作台将保留完整特殊版式`
+      ? `已载入 ${matchedData.name} · ${resolved.artworkId}；卡组打印工作台将保留完整特殊版式`
       : `已载入 ${matchedData.name} · ${resolved.artworkId}`;
   }
 }
@@ -1292,7 +1293,7 @@ const loadCustomDeckCard = async customCard => {
 const loadDeckCardContext = async (projectId, section, cardId) => {
   const project = await getProject(projectId);
   if (!project || (project.kind || 'deck') !== 'deck') {
-    throw new Error('来源卡组项目不存在');
+    throw new Error('来源卡组不存在');
   }
   Object.assign(deckContext, {
     projectId: project.id,
@@ -1314,11 +1315,11 @@ const loadDeckCardContext = async (projectId, section, cardId) => {
 const loadBatchCardContext = async (projectId, cardId) => {
   const project = await getProject(projectId);
   if (!project || project.kind !== 'batch') {
-    throw new Error('来源批量项目不存在');
+    throw new Error('来源批量制卡方案不存在');
   }
   const sourceCard = project.cards.find(item => item.batchId === cardId);
   if (!sourceCard) {
-    throw new Error('来源批量项目缺少这张卡');
+    throw new Error('来源批量制卡方案缺少这张卡');
   }
   Object.assign(batchContext, {
     projectId: project.id,
@@ -1351,7 +1352,7 @@ const writeBackToDeck = async mode => {
   try {
     const project = await getProject(deckContext.projectId);
     if (!project || (project.kind || 'deck') !== 'deck') {
-      throw new Error('来源卡组项目不存在');
+      throw new Error('来源卡组不存在');
     }
     const existing = getCustomCard(
       project.customCards,
@@ -1391,7 +1392,7 @@ const writeBackToBatch = async mode => {
   try {
     const project = await getProject(batchContext.projectId);
     if (!project || project.kind !== 'batch') {
-      throw new Error('来源批量项目不存在');
+      throw new Error('来源批量制卡方案不存在');
     }
     const saved = await saveProject(writeBatchCard(
       project,
@@ -1425,7 +1426,7 @@ const getActiveBatchProject = async () => {
   if (active?.kind === 'batch') return active;
   return saveProject({
     kind: 'batch',
-    name: '我的批量项目',
+    name: '我的批量制卡方案',
     cards: [],
   });
 };
@@ -1470,7 +1471,7 @@ const saveCurrentProject = async () => {
     projectName.value = saved.name;
     setActiveProjectId(saved.id, 'card');
     await refreshProjects();
-    databaseNotice.value = '单卡项目已保存';
+    databaseNotice.value = '单卡草稿已保存';
     return saved;
   } catch (error) {
     databaseError.value = error instanceof Error ? error.message : String(error);
@@ -1482,14 +1483,14 @@ const duplicateCurrentProject = async () => {
   const saved = await duplicateProject(projectSnapshot());
   await refreshProjects();
   await applyProject(saved);
-  databaseNotice.value = '已创建项目副本';
+  databaseNotice.value = '已创建单卡草稿副本';
 };
 
 const applyProject = async project => {
   if (!project || project.kind !== 'card') return;
   const preset = cardPresets.find(item => item.key === project.cardKind);
   if (!preset) {
-    databaseError.value = '项目中的卡片模板不可用';
+    databaseError.value = '单卡草稿中的卡片模板不可用';
     return;
   }
   loadingProject = true;
@@ -1572,12 +1573,12 @@ const importProjectFile = async file => {
   try {
     const imported = parseProject(await file.text());
     if (imported.kind !== 'card') {
-      throw new Error('这个文件不是单卡项目');
+      throw new Error('这个文件不是单卡草稿备份');
     }
     const saved = await saveProject(imported);
     await refreshProjects();
     await applyProject(saved);
-    databaseNotice.value = '单卡项目已导入';
+    databaseNotice.value = '单卡草稿已导入';
   } catch (error) {
     databaseError.value = error instanceof Error ? error.message : String(error);
   }

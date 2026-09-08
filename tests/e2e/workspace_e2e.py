@@ -183,7 +183,7 @@ with sync_playwright() as playwright:
 
     name_input = page.get_by_text("卡片名称", exact=True).locator("..").locator("input")
     name_input.fill("批量回归测试卡")
-    page.get_by_title("保存项目").click()
+    page.get_by_title("保存批量制卡方案").click()
     page.wait_for_timeout(800)
     assert "批量回归测试卡" in page.locator(".batch-list").inner_text()
 
@@ -275,7 +275,7 @@ with sync_playwright() as playwright:
         assert "dataUrl" not in production_payload["cards"][0]
 
     page.wait_for_timeout(800)
-    page.get_by_role("button", name="送往打印工作台").click()
+    page.get_by_role("button", name="送往卡组打印工作台").click()
     page.wait_for_url("**/print/**")
     print_custom_tile = page.locator(".deck-card-tile").filter(
         has_text="批量回归测试卡",
@@ -317,7 +317,7 @@ with sync_playwright() as playwright:
         ".trim() === '青眼白龙'",
         timeout=120_000,
     )
-    page.get_by_title("在单卡工房中精修").click()
+    page.get_by_title("在单卡DIY工坊中精修").click()
     page.wait_for_url("**/editor/**")
     page.wait_for_selector(".deck-writeback-bar")
     refined_name = page.get_by_text(
@@ -331,7 +331,7 @@ with sync_playwright() as playwright:
         "批量精修回写卡",
         exact=True,
     ).wait_for(timeout=120_000)
-    page.get_by_title("创建项目副本").click()
+    page.get_by_title("创建批量制卡方案副本").click()
     page.wait_for_function(
         "() => document.querySelector('.project-bar select')"
         "?.selectedOptions[0]?.textContent.includes('副本')"
@@ -339,6 +339,13 @@ with sync_playwright() as playwright:
 
     page.goto(f"{BASE_URL}/print/", wait_until="domcontentloaded")
     wait_for_network(page)
+    render_policy = page.locator(".render-policy")
+    assert "排版预览" in render_policy.inner_text()
+    assert "快速卡图" in render_policy.inner_text()
+    assert "PDF 打印" in render_policy.inner_text()
+    assert "高清重绘" in render_policy.inner_text()
+    assert page.get_by_role("button", name="快速卡图").count() == 0
+    assert "PDF · 高清重绘" in page.locator(".preview-footer").inner_text()
     assert "原创卡示例" not in page.locator(".project-bar select").inner_text()
     assert page.get_by_text("0.1 mm", exact=True).count() == 1
     custom_tile = page.locator(".deck-card-tile").filter(
@@ -354,7 +361,7 @@ with sync_playwright() as playwright:
 
     page.get_by_role("button", name="载入示例").click()
     page.wait_for_timeout(500)
-    page.get_by_role("button", name="检查项目").click()
+    page.get_by_role("button", name="检查卡组").click()
     page.wait_for_function(
         "() => document.querySelector('.deck-message')?.textContent"
         ".includes('检查完成')",
@@ -430,9 +437,9 @@ with sync_playwright() as playwright:
     dense_first = page.locator(".card-slot").first.bounding_box()
     assert abs(dense_first["x"] - paper_box["x"]) < 2
     assert abs(dense_first["y"] - paper_box["y"]) < 2
-    page.locator(".project-bar input[aria-label='项目名称']").fill("E2E 卡组")
+    page.locator(".project-bar input[aria-label='卡组名称']").fill("E2E 卡组")
     blue_eyes_queue.get_by_title("减少打印份数").click()
-    page.get_by_title("保存项目").click()
+    page.get_by_title("保存卡组").click()
     page.wait_for_timeout(800)
     page.reload(wait_until="domcontentloaded")
     blue_eyes_queue = page.locator(".print-queue article").filter(
@@ -499,7 +506,7 @@ with sync_playwright() as playwright:
     main_text = page.locator("#deck-text-input").input_value().split("#extra")[0]
     assert main_text.index("46986414") < main_text.index("89631139")
     source.click()
-    page.get_by_role("button", name="在单卡编辑器中打开").click()
+    page.get_by_role("button", name="在单卡DIY工坊中打开").click()
     page.wait_for_url("**/editor/**")
     page.wait_for_selector(".deck-writeback-bar")
     page.wait_for_function(
@@ -723,6 +730,36 @@ with sync_playwright() as playwright:
         ".includes('试手数据已保存')",
         timeout=30_000,
     )
+    playtest_page.wait_for_function(
+        """expected => new Promise((resolve, reject) => {
+            const request = indexedDB.open('yugioh-card-workspace');
+            request.onsuccess = () => {
+                const database = request.result;
+                const transaction = database.transaction(
+                    'projects',
+                    'readonly'
+                );
+                const read = transaction.objectStore('projects').get(
+                    expected.id
+                );
+                read.onsuccess = () => {
+                    const playtest = read.result?.playtest;
+                    database.close();
+                    resolve(
+                        playtest?.goals?.[0]?.conditions?.length === 3 &&
+                        playtest?.history?.length === expected.history
+                    );
+                };
+                read.onerror = () => {
+                    database.close();
+                    reject(read.error);
+                };
+            };
+            request.onerror = () => reject(request.error);
+        })""",
+        arg={"id": playtest_project_id, "history": history_after},
+        timeout=30_000,
+    )
     assert_no_overflow(playtest_page)
     playtest_page.screenshot(
         path=ARTIFACTS / "playtest-desktop.png",
@@ -800,23 +837,23 @@ with sync_playwright() as playwright:
         ".includes('资料')",
         timeout=120_000,
     )
-    page.get_by_title("加入当前批量项目").click()
+    page.get_by_title("加入当前批量制卡方案").click()
     page.wait_for_function(
         "() => document.querySelector('.database-message')?.textContent"
         ".includes('已加入')",
         timeout=120_000,
     )
-    page.locator(".project-bar input[aria-label='项目名称']").fill("E2E 单卡")
-    page.get_by_title("保存项目").click()
+    page.locator(".project-bar input[aria-label='单卡草稿名称']").fill("E2E 单卡")
+    page.get_by_title("保存单卡草稿").click()
     page.wait_for_function(
         "() => Boolean(document.querySelector('.project-bar select')?.value)",
     )
     card_name_input = page.get_by_text("卡片名称", exact=True).locator("..").locator("input")
-    card_name_input.fill("单卡项目自动保存")
+    card_name_input.fill("单卡草稿自动保存")
     page.wait_for_timeout(1_000)
     page.goto(f"{BASE_URL}/editor/", wait_until="domcontentloaded")
     page.wait_for_function(
-        "() => document.querySelector('.document-title small')?.textContent.trim() === '单卡项目自动保存'",
+        "() => document.querySelector('.document-title small')?.textContent.trim() === '单卡草稿自动保存'",
         timeout=60_000,
     )
     page.wait_for_function(
@@ -854,20 +891,40 @@ with sync_playwright() as playwright:
     )
     page.goto(f"{BASE_URL}/", wait_until="domcontentloaded")
     page.wait_for_selector(".workspace-launcher")
-    project_text = page.locator(".project-list").inner_text()
-    assert "原创卡示例" in project_text
-    assert "E2E 卡组" in project_text
-    assert "E2E 单卡" in project_text
-    page.get_by_label("搜索本地项目").fill("E2E 单卡")
+    deck_text = page.locator(".project-list").inner_text()
+    assert "E2E 卡组" in deck_text
+    assert "E2E 单卡" not in deck_text
+    page.get_by_label("搜索本地卡组").fill("E2E 卡组")
     assert page.locator(".project-list > button").count() == 1
-    page.get_by_label("搜索本地项目").fill("")
+    page.get_by_role("button", name="编辑卡组 E2E 卡组").click()
+    page.wait_for_url("**/print/**")
+    page.wait_for_function(
+        "() => document.querySelector('.project-bar select')"
+        "?.selectedOptions[0]?.textContent.trim() === 'E2E 卡组'",
+    )
+    page.goto(f"{BASE_URL}/", wait_until="domcontentloaded")
+    page.wait_for_selector(".workspace-launcher")
     with page.expect_download() as download_info:
-        page.get_by_title("备份全部项目").click()
+        page.get_by_title("备份全部卡组").click()
     workspace_backup = ARTIFACTS / "workspace-backup.ygoworkspace"
     download_info.value.save_as(workspace_backup)
     workspace_payload = json.loads(workspace_backup.read_text())
     assert workspace_payload["format"] == "yugioh-card-workspace"
-    assert len(workspace_payload["projects"]) >= 3
+    assert workspace_payload["projects"]
+    assert all(
+        project["kind"] == "deck"
+        for project in workspace_payload["projects"]
+    )
+    workspace_payload["projects"].append({
+        "id": "ignored-card-draft",
+        "kind": "card",
+        "name": "不应由首页恢复",
+        "cardKind": "yugioh",
+        "data": {"name": "不应由首页恢复"},
+    })
+    workspace_backup.write_text(
+        json.dumps(workspace_payload, ensure_ascii=False),
+    )
     page.evaluate(
         """async () => {
             const request = indexedDB.open('yugioh-card-workspace');
@@ -887,7 +944,7 @@ with sync_playwright() as playwright:
     page.reload(wait_until="domcontentloaded")
     page.wait_for_function(
         "() => document.querySelector('.launcher-status span')"
-        "?.textContent.trim() === '0 个本地项目'"
+        "?.textContent.trim() === '0 套本地卡组'"
     )
     page.locator(
         ".recent-tools "
@@ -898,6 +955,24 @@ with sync_playwright() as playwright:
         ".includes('已恢复')"
     )
     assert "E2E 卡组" in page.locator(".project-list").inner_text()
+    restored_kinds = page.evaluate(
+        """async () => {
+            const request = indexedDB.open('yugioh-card-workspace');
+            const database = await new Promise((resolve, reject) => {
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+            const transaction = database.transaction('projects', 'readonly');
+            const records = await new Promise((resolve, reject) => {
+                const read = transaction.objectStore('projects').getAll();
+                read.onsuccess = () => resolve(read.result);
+                read.onerror = () => reject(read.error);
+            });
+            database.close();
+            return records.map(record => record.kind);
+        }"""
+    )
+    assert restored_kinds and set(restored_kinds) == {"deck"}
     page.screenshot(path=ARTIFACTS / "launcher-desktop.png", full_page=True)
 
     page.goto(f"{BASE_URL}/print/", wait_until="domcontentloaded")

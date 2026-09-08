@@ -12,9 +12,13 @@ import {
 import { runWithConcurrency } from './concurrency.js';
 
 const highResolutionPromiseMap = new Map();
+export const PRINT_RENDER_MODE = 'high';
 
-export const shouldRenderHighResolution = (cardId, mode) => {
-  return mode === 'high' || isPrereleaseCardId(cardId);
+export const resolvePrintableRenderMode = mode => {
+  if (mode === undefined || mode === PRINT_RENDER_MODE) {
+    return PRINT_RENDER_MODE;
+  }
+  throw new Error('快速卡图仅用于排版预览，不能生成打印文件');
 };
 
 const renderCachedHighResolutionCard = async cardId => {
@@ -33,11 +37,11 @@ const renderCachedHighResolutionCard = async cardId => {
 
 export const preparePrintableCards = async (cardIds, options = {}) => {
   const {
-    mode = 'quick',
-    language = 'zh',
+    language = 'sc',
     customCards = {},
     onProgress,
   } = options;
+  resolvePrintableRenderMode(options.mode);
   const idChangelog = await fetchIdChangelog();
   const normalizedIds = normalizeCardIds(cardIds, idChangelog);
   const uniqueIds = [...new Set(normalizedIds)];
@@ -53,7 +57,7 @@ export const preparePrintableCards = async (cardIds, options = {}) => {
       if (isCustomCardId(cardId)) {
         const customCard = getCustomCard(customCards, cardId);
         if (!customCard) {
-          throw new Error(`卡组项目中缺少原创卡 ${cardId}`);
+          throw new Error(`卡组中缺少原创卡 ${cardId}`);
         }
         card = {
           id: cardId,
@@ -64,7 +68,7 @@ export const preparePrintableCards = async (cardIds, options = {}) => {
             quality: 0.94,
           }),
         };
-      } else if (shouldRenderHighResolution(cardId, mode)) {
+      } else {
         try {
           card = await renderCachedHighResolutionCard(cardId);
           if (card.fullCardFallback) {
@@ -80,11 +84,6 @@ export const preparePrintableCards = async (cardIds, options = {}) => {
             dataUrl: await fetchCardImageDataUrl(cardId, language),
           };
         }
-      } else {
-        card = {
-          id: cardId,
-          dataUrl: await fetchCardImageDataUrl(cardId, language),
-        };
       }
       imageMap.set(cardId, card);
     } catch (error) {
@@ -103,13 +102,7 @@ export const preparePrintableCards = async (cardIds, options = {}) => {
     }
   });
 
-  const requiresSerialRendering = mode === 'high' ||
-    uniqueIds.some(cardId =>
-      isCustomCardId(cardId) || isPrereleaseCardId(cardId));
-  await runWithConcurrency(
-    tasks,
-    requiresSerialRendering ? 1 : 4,
-  );
+  await runWithConcurrency(tasks, 1);
 
   return {
     cards: normalizedIds.map(id => imageMap.get(id) || { id, dataUrl: null }),

@@ -8,7 +8,7 @@
       <a class="brand" href="../">
         <span class="brand-mark">YG</span>
         <div>
-          <h1>卡牌图像识别</h1>
+          <h1>卡牌卡组图像识别</h1>
           <p>CARD IMAGE RECOGNITION</p>
         </div>
       </a>

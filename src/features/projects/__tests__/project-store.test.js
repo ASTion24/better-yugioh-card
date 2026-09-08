@@ -254,6 +254,6 @@ test('workspace backups reject invalid payloads and project records', () => {
       version: 1,
       projects: [{ kind: 'unknown' }],
     })),
-    /第 1 个项目格式无效/,
+    /第 1 条记录格式无效/,
   );
 });

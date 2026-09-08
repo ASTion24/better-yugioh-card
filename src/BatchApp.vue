@@ -9,9 +9,9 @@
         </div>
       </a>
       <nav aria-label="工作台导航">
-        <a href="../editor/">单卡编辑</a>
+        <a href="../editor/">单卡DIY工坊</a>
         <a href="../library/">卡片资料库</a>
-        <a href="../print/">打印工作台</a>
+        <a href="../print/">卡组打印工作台</a>
       </nav>
       <div class="batch-count">{{ cards.length }} / 200</div>
     </header>
@@ -19,7 +19,8 @@
     <ProjectBar
       :project-id="activeProjectId"
       :name="projectName"
-      name-placeholder="批量项目名称"
+      name-placeholder="批量制卡方案名称"
+      entity-label="批量制卡方案"
       :projects="projects"
       @select="selectProject"
       @rename="projectName = $event"
@@ -252,7 +253,7 @@
             <div class="editor-actions">
               <button
                 type="button"
-                title="在单卡工房中精修"
+                title="在单卡DIY工坊中精修"
                 @click="openSelectedInEditor"
               >
                 <Icon icon="ri:edit-box-line" />
@@ -464,7 +465,7 @@
             @click="sendToPrint"
           >
             <Icon icon="ri:printer-line" />
-            <span>送往打印工作台</span>
+            <span>送往卡组打印工作台</span>
           </button>
           <button
             type="button"
@@ -578,7 +579,7 @@ const selectedIndex = ref(-1);
 const projects = ref([]);
 const activeProjectId = ref('');
 const activeProjectRevision = ref(0);
-const projectName = ref('未命名批量项目');
+const projectName = ref('未命名批量制卡方案');
 const previewUrl = ref('');
 const previewError = ref('');
 const cropSource = ref('');
@@ -1016,7 +1017,7 @@ const onDataFile = async event => {
   if (file) {
     sourceText.value = await file.text();
     projectName.value = file.name.replace(/\.(csv|json)$/i, '') ||
-      '未命名批量项目';
+      '未命名批量制卡方案';
     parseSource();
   }
   event.target.value = '';
@@ -1024,7 +1025,7 @@ const onDataFile = async event => {
 
 const addCard = () => {
   if (cards.value.length >= 200) {
-    sourceError.value = '单个项目最多包含 200 张原创卡';
+    sourceError.value = '单个批量制卡方案最多包含 200 张原创卡';
     return;
   }
   cards.value.push({
@@ -1040,7 +1041,7 @@ const addCard = () => {
 const duplicateCard = () => {
   if (!selectedCard.value) return;
   if (cards.value.length >= 200) {
-    sourceError.value = '单个项目最多包含 200 张原创卡';
+    sourceError.value = '单个批量制卡方案最多包含 200 张原创卡';
     return;
   }
   const duplicated = {
@@ -1335,7 +1336,7 @@ const saveCurrentProject = async () => {
     projectName.value = saved.name;
     setActiveProjectId(saved.id, 'batch');
     await refreshProjects();
-    notice.value = '项目已保存';
+    notice.value = '批量制卡方案已保存';
     return saved;
   } catch (error) {
     sourceError.value = error instanceof Error ? error.message : String(error);
@@ -1358,12 +1359,12 @@ const duplicateCurrentProject = async () => {
   const saved = await duplicateProject(projectSnapshot());
   await refreshProjects();
   applyProject(saved);
-  notice.value = '已创建项目副本';
+  notice.value = '已创建批量制卡方案副本';
 };
 
 const applyProject = project => {
   if (!project || (project.kind || 'deck') !== 'batch') {
-    sourceError.value = '请选择批量制卡项目';
+    sourceError.value = '请选择批量制卡方案';
     return;
   }
   loadingProject = true;
@@ -1392,7 +1393,7 @@ const createProject = () => {
   loadingProject = true;
   activeProjectId.value = '';
   activeProjectRevision.value = 0;
-  projectName.value = '未命名批量项目';
+  projectName.value = '未命名批量制卡方案';
   sourceText.value = '';
   cards.value = [];
   selectedIndex.value = -1;
@@ -1429,12 +1430,12 @@ const importProjectFile = async file => {
   try {
     const imported = parseProject(await file.text());
     if (imported.kind !== 'batch') {
-      throw new Error('这个文件不是批量制卡项目');
+      throw new Error('这个文件不是批量制卡方案备份');
     }
     const saved = await saveProject(imported);
     await refreshProjects();
     applyProject(saved);
-    notice.value = '项目已导入';
+    notice.value = '批量制卡方案已导入';
   } catch (error) {
     sourceError.value = error instanceof Error ? error.message : String(error);
   }

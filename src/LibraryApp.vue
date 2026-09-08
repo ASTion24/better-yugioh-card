@@ -6,8 +6,8 @@
         <strong>卡片资料库</strong>
       </a>
       <nav aria-label="工作台导航">
-        <a href="../editor/">单卡编辑</a>
-        <a href="../print/">打印工作台</a>
+        <a href="../editor/">单卡DIY工坊</a>
+        <a href="../print/">卡组打印工作台</a>
         <a href="../batch/">批量制卡</a>
       </nav>
     </header>
@@ -73,10 +73,10 @@
             <strong>{{ card.name }}</strong>
             <small>{{ card.artworkId }}</small>
             <div class="catalog-actions">
-              <button type="button" title="加入当前项目" @click="addToProject(card)">
+              <button type="button" title="加入当前卡组" @click="addToProject(card)">
                 <Icon icon="ri:add-line" />
               </button>
-              <a :href="`../editor/?card=${card.artworkId}`" title="在单卡编辑器中打开">
+              <a :href="`../editor/?card=${card.artworkId}`" title="在单卡DIY工坊中打开">
                 <Icon icon="ri:edit-line" />
               </a>
             </div>

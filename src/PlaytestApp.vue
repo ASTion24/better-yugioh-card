@@ -3,7 +3,7 @@
     <header class="lab-header">
       <a class="back-link" href="../print/">
         <Icon icon="ri:arrow-left-line" />
-        <span>打印工作台</span>
+        <span>卡组打印工作台</span>
       </a>
       <a class="lab-brand" href="../">
         <span>YG</span>
@@ -19,6 +19,7 @@
       :project-id="activeProjectId"
       :name="projectName"
       :projects="projects"
+      entity-label="卡组"
       @select="selectProject"
       @rename="projectName = $event"
       @create="createProject"
@@ -29,7 +30,7 @@
       @remove="removeCurrentProject"
     />
     <div v-if="externalUpdate" class="project-sync-warning">
-      <span>项目已在其他标签页更新</span>
+      <span>卡组已在其他标签页更新</span>
       <button type="button" @click="reloadExternalProject">重新载入</button>
     </div>
 
@@ -700,8 +701,8 @@
 
     <main v-else class="empty-workspace">
       <Icon icon="ri:shuffle-line" />
-      <strong>没有可分析的卡组项目</strong>
-      <a href="../print/">打开打印工作台</a>
+      <strong>没有可分析的卡组</strong>
+      <a href="../print/">打开卡组打印工作台</a>
     </main>
   </div>
 </template>
@@ -1612,12 +1613,12 @@ const importProjectFile = async file => {
   try {
     const imported = parseProject(await file.text());
     if (imported.kind !== 'deck') {
-      throw new Error('这个文件不是卡组项目');
+      throw new Error('这个文件不是卡组备份');
     }
     const saved = await saveProject(imported);
     await refreshProjects();
     await applyProject(saved);
-    notice.value = '卡组项目已导入';
+    notice.value = '卡组已导入';
   } catch (error) {
     notice.value = error instanceof Error ? error.message : String(error);
   }

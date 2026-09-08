@@ -6,7 +6,7 @@
     @click="openImporter"
   >
     <Icon icon="ri:image-circle-ai-line" />
-    <span>卡牌图像识别</span>
+    <span>卡牌卡组图像识别</span>
     <small>PNG · JPEG · WebP</small>
   </button>
 
@@ -18,14 +18,14 @@
         : 'recognition-backdrop'"
       :role="props.standalone ? 'region' : 'dialog'"
       :aria-modal="props.standalone ? undefined : 'true'"
-      aria-label="卡牌图像识别"
+      aria-label="卡牌卡组图像识别"
       @click.self="!props.standalone && closeImporter()"
     >
       <section class="recognition-panel">
         <header class="recognition-header">
           <div>
             <span>CARD IMAGE RECOGNITION</span>
-            <h2>卡牌图像识别</h2>
+            <h2>卡牌卡组图像识别</h2>
           </div>
           <div class="recognition-header-status">
             <span v-if="sourceName">{{ sourceName }}</span>

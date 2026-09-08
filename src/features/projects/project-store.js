@@ -13,14 +13,14 @@ const projectKind = project => project?.kind || 'deck';
 const activeProjectKey = kind => `${ACTIVE_PROJECT_KEY}:${kind}`;
 let projectChannel;
 const DEFAULT_PROJECT_NAMES = {
-  batch: '未命名批量项目',
+  batch: '未命名批量制卡方案',
   card: '未命名单卡',
   deck: '未命名卡组',
 };
 
 const openDatabase = () => new Promise((resolve, reject) => {
   if (typeof indexedDB === 'undefined') {
-    reject(new Error('当前浏览器不支持本地项目库'));
+    reject(new Error('当前浏览器不支持本地内容库'));
     return;
   }
   const request = indexedDB.open(DATABASE_NAME, DATABASE_VERSION);
@@ -32,7 +32,7 @@ const openDatabase = () => new Promise((resolve, reject) => {
     }
   };
   request.onsuccess = () => resolve(request.result);
-  request.onerror = () => reject(request.error || new Error('无法打开本地项目库'));
+  request.onerror = () => reject(request.error || new Error('无法打开本地内容库'));
 });
 
 const runRequest = async (mode, operation) => {
@@ -45,18 +45,18 @@ const runRequest = async (mode, operation) => {
     request.onsuccess = () => {
       result = request.result;
     };
-    request.onerror = () => reject(request.error || new Error('本地项目操作失败'));
+    request.onerror = () => reject(request.error || new Error('本地内容操作失败'));
     transaction.oncomplete = () => {
       database.close();
       resolve(result);
     };
     transaction.onerror = () => {
       database.close();
-      reject(transaction.error || new Error('本地项目写入失败'));
+      reject(transaction.error || new Error('本地内容写入失败'));
     };
     transaction.onabort = () => {
       database.close();
-      reject(transaction.error || new Error('本地项目操作已中止'));
+      reject(transaction.error || new Error('本地内容操作已中止'));
     };
   });
 };
@@ -92,7 +92,7 @@ export const subscribeProjectChanges = listener => {
 
 export class ProjectConflictError extends Error {
   constructor(projectId) {
-    super('项目已在其他标签页更新，请重新载入后继续编辑');
+    super('当前内容已在其他标签页更新，请重新载入后继续编辑');
     this.name = 'ProjectConflictError';
     this.projectId = projectId;
   }
@@ -257,11 +257,11 @@ export const saveProject = async project => {
       store.put(record);
     };
     request.onerror = () => reject(
-      request.error || new Error('无法读取本地项目'),
+      request.error || new Error('无法读取本地内容'),
     );
     transaction.oncomplete = resolve;
     transaction.onerror = () => reject(
-      transaction.error || new Error('本地项目写入失败'),
+      transaction.error || new Error('本地内容写入失败'),
     );
     transaction.onabort = () => {
       if (transaction.error) reject(transaction.error);
@@ -280,7 +280,7 @@ export const duplicateProject = project => saveProject({
   ...normalizeProject(project),
   id: '',
   revision: 0,
-  name: `${String(project?.name || '未命名项目').trim()} 副本`,
+  name: `${String(project?.name || '未命名内容').trim()} 副本`,
   createdAt: '',
   updatedAt: '',
 });
@@ -325,14 +325,14 @@ export const parseProject = value => {
   const payload = JSON.parse(value);
   if (payload?.format !== 'yugioh-card-project' ||
     ![1, 2, PROJECT_FILE_VERSION].includes(payload.version)) {
-    throw new Error('不是有效的 Better YGO 项目文件');
+    throw new Error('不是有效的 Better YGO 备份文件');
   }
   if (!payload.project || typeof payload.project !== 'object') {
-    throw new Error('项目文件缺少可识别的工作区数据');
+    throw new Error('备份文件缺少可识别的数据');
   }
   const project = normalizeProject(payload.project);
   if (!isValidProject(project)) {
-    throw new Error('项目文件缺少可识别的工作区数据');
+    throw new Error('备份文件缺少可识别的数据');
   }
   return {
     ...project,
@@ -359,15 +359,15 @@ export const parseWorkspace = value => {
     throw new Error('不是有效的 Better YGO 工作区备份');
   }
   if (payload.projects.length > 1000) {
-    throw new Error('工作区备份最多包含 1000 个项目');
+    throw new Error('工作区备份最多包含 1000 条内容');
   }
   const projects = payload.projects.map((project, index) => {
     if (!project || typeof project !== 'object') {
-      throw new Error(`工作区中的第 ${index + 1} 个项目格式无效`);
+      throw new Error(`工作区中的第 ${index + 1} 条记录格式无效`);
     }
     const normalized = normalizeProject(project);
     if (!isValidProject(normalized)) {
-      throw new Error(`工作区中的第 ${index + 1} 个项目格式无效`);
+      throw new Error(`工作区中的第 ${index + 1} 条记录格式无效`);
     }
     return {
       ...normalized,
@@ -379,8 +379,9 @@ export const parseWorkspace = value => {
   return projects;
 };
 
-export const restoreWorkspace = async value => {
-  const projects = parseWorkspace(value);
+export const restoreWorkspace = async (value, options = {}) => {
+  const projects = parseWorkspace(value)
+    .filter(project => !options.kind || projectKind(project) === options.kind);
   const database = await openDatabase();
   const now = new Date().toISOString();
   const records = projects.map(project => ({

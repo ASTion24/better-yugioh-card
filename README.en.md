@@ -19,10 +19,11 @@
   <img src=".github/assets/launcher.jpg" alt="Better YGO unified launcher">
 </p>
 
-Better YGO brings card creation, deck import, image recognition, build analysis,
-playtesting, Side Deck planning, printing, and delivery into one browser
-workspace. It requires no account, cloud sync, or bundled full card database;
-projects and uploaded images stay on the device by default.
+Better YGO treats each deck as a first-class asset and connects import, editing,
+image recognition, build analysis, playtesting, Side Deck planning, printing,
+and delivery in one browser workspace. It requires no account, cloud sync, or
+bundled full card database; decks and uploaded images stay on the device by
+default.
 
 > Current release: `0.1.0-beta.1`. Core workflows are usable. Availability of
 > remote card data and prerelease records still depends on third-party services.
@@ -31,17 +32,19 @@ projects and uploaded images stay on the device by default.
 
 | Workspace | What it solves |
 | --- | --- |
-| Unified launcher | Drop images, YDK, projects, or backups; paste YDKe and deck links |
-| Card studio | Database completion, high-resolution rendering, artwork cropping, and PNG export |
+| Unified launcher | Open an image or file to import a deck; paste YDK, YDKe, or a deck link; reopen any recent deck |
+| Single-card DIY studio | Database completion, high-resolution rendering, artwork cropping, and PNG export |
 | Card library | On-demand card search with deck insertion and editable custom-card drafts |
-| Print workspace | YDK-to-A4 PDF, duplex backs, calibration, dense 11-card and cut-efficient 10-card layouts |
-| Card image recognition | Upload or capture single/multiple cards, review results, and export standard YDK |
+| Deck print workspace | Turn YDK into an editable deck and A4 PDF; quick images are preview-only, while print outputs always use high-resolution rendering |
+| Card and deck image recognition | Upload or capture single/multiple cards, review results, and export or continue editing a standard deck |
 | Playtest lab | Roles, exact odds, custom goals, failure diagnosis, Side plans, and trial history |
 | Batch production | CSV/JSON import, quality audit, bulk styles, production packages, and print handoff |
 
-Projects use `.ygoproject` v3 and complete workspaces can be backed up as
-`.ygoworkspace`. IndexedDB autosave, revision checks, and `BroadcastChannel`
-notifications prevent silent overwrites between tabs.
+Each deck can be saved, duplicated, imported, and exported independently. The
+launcher lists recent decks only and opens any of them directly for editing.
+For backward compatibility, individual backups still use `.ygoproject` v3 and
+deck collections use `.ygoworkspace`. IndexedDB autosave, revision checks, and
+`BroadcastChannel` notifications prevent silent overwrites between tabs.
 
 <table>
   <tr>
@@ -54,9 +57,9 @@ notifications prevent silent overwrites between tabs.
 
 - No bundled full card database; only records required by the current task are requested.
 - Recognition uses an approximately 800 KB visual fingerprint index and loads numeric OCR only when needed.
-- Source images and recognition crops are never persisted in project files.
+- Source images and recognition crops are never persisted in deck backups.
 - Initial recognition targets regular screenshots, single-card photos, and unobstructed flat lays. Heavy glare, overlap, and scattered cards require manual review.
-- Standard YDK/YDKe exports contain official numeric IDs only. Custom-card data stays in Better YGO projects.
+- Standard YDK/YDKe exports contain official numeric IDs only. Custom-card data stays in Better YGO deck backups.
 
 See [PRIVACY.md](./PRIVACY.md) and
 [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md) for data handling and

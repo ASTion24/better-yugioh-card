@@ -203,7 +203,7 @@
           })"
         >
           <Icon icon="ri:edit-line" />
-          <span>在单卡编辑器中打开</span>
+          <span>在单卡DIY工坊中打开</span>
         </button>
       </div>
     </aside>

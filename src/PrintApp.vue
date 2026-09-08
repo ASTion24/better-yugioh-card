@@ -3,12 +3,12 @@
     <header class="app-bar">
       <a class="back-link" href="../editor/">
         <Icon icon="ri:arrow-left-line" />
-        <span>单卡编辑</span>
+        <span>单卡DIY工坊</span>
       </a>
       <a class="brand" href="../">
         <span class="brand-mark">YG</span>
         <div>
-          <h1>打印工作台</h1>
+          <h1>卡组打印工作台</h1>
           <p>A4 · 59 × 86 mm</p>
         </div>
       </a>
@@ -23,6 +23,7 @@
           :project-id="activeProjectId"
           :name="projectName"
           :projects="projects"
+          entity-label="卡组"
           @select="selectProject"
           @rename="projectName = $event"
           @create="createProject"
@@ -33,7 +34,7 @@
           @remove="removeCurrentProject"
         />
         <div v-if="externalUpdate" class="project-sync-warning">
-          <span>项目已在其他标签页更新</span>
+          <span>卡组已在其他标签页更新</span>
           <button type="button" @click="reloadExternalProject">重新载入</button>
         </div>
         <section class="control-section import-section">
@@ -132,7 +133,7 @@
               :disabled="isInspecting"
               @click="runProjectInspection"
             >
-              {{ isInspecting ? '检查中' : '检查项目' }}
+              {{ isInspecting ? '检查中' : '检查卡组' }}
             </button>
           </div>
           <div class="section-selectors">
@@ -177,7 +178,7 @@
           />
           <div v-if="inspectionIssues.length" class="inspection-panel">
             <header>
-              <strong>项目检查</strong>
+              <strong>卡组检查</strong>
               <span>{{ inspectionSummary }}</span>
             </header>
             <article
@@ -204,31 +205,24 @@
         <section class="control-section">
           <div class="section-heading">
             <span class="section-index">03</span>
-            <h2>输出方式</h2>
+            <h2>渲染策略</h2>
           </div>
 
-          <div class="mode-switch" aria-label="输出方式">
-            <button
-              type="button"
-              :class="{ active: settings.mode === 'quick' }"
-              @click="settings.mode = 'quick'"
-            >
-              <span>快速卡图</span>
-              <small>约 300 DPI</small>
-            </button>
-            <button
-              type="button"
-              :class="{ active: settings.mode === 'high' }"
-              @click="settings.mode = 'high'"
-            >
-              <span>高清重绘</span>
-              <small>约 600 DPI</small>
-            </button>
+          <div class="render-policy" aria-label="渲染策略">
+            <div>
+              <small>排版预览</small>
+              <strong>快速卡图</strong>
+            </div>
+            <Icon icon="ri:arrow-right-line" />
+            <div class="render-policy__output">
+              <small>PDF 打印</small>
+              <strong>高清重绘</strong>
+            </div>
           </div>
 
           <label class="field-row">
-            <span>卡面语言</span>
-            <select v-model="settings.language" :disabled="settings.mode === 'high'">
+            <span>预览卡图语言</span>
+            <select v-model="settings.language">
               <option value="zh">中文</option>
               <option value="sc">简体中文</option>
               <option value="jp">日文</option>
@@ -436,7 +430,7 @@
         <footer class="preview-footer">
           <span>{{ selectedCardIds.length }} 张</span>
           <span>{{ pageCount }} 页 A4</span>
-          <span>{{ settings.mode === 'high' ? '高清重绘' : '完整卡图' }}</span>
+          <span>PDF · 高清重绘</span>
         </footer>
       </section>
     </main>
@@ -473,7 +467,10 @@ import {
   getCardPreviewUrl,
   isPrereleaseCardId,
 } from './features/print/card-source';
-import { preparePrintableCards } from './features/print/generator';
+import {
+  PRINT_RENDER_MODE,
+  preparePrintableCards,
+} from './features/print/generator';
 import {
   COMPACT_MAX_GAP_MM,
   PAGE_HEIGHT_MM,
@@ -586,7 +583,7 @@ const selectedSections = reactive({
   side: true,
 });
 const settings = reactive({
-  mode: 'quick',
+  mode: PRINT_RENDER_MODE,
   language: 'zh',
   layout: 'center',
   gap: 0.1,
@@ -614,7 +611,7 @@ const maxLayoutGap = computed(() =>
     : 10);
 const pageCount = computed(() =>
   Math.max(1, Math.ceil(selectedCardIds.value.length / cardsPerPage.value)));
-const previewLanguage = computed(() => settings.mode === 'high' ? 'sc' : settings.language);
+const previewLanguage = computed(() => settings.language);
 const previewSlots = computed(() => {
   const start = currentPage.value * cardsPerPage.value;
   const ids = selectedCardIds.value.slice(
@@ -664,12 +661,8 @@ const progressPercent = computed(() => {
   if (!progress.total) return 0;
   return Math.round(progress.done / progress.total * 100);
 });
-const generationMessage = computed(() => {
-  if (settings.mode === 'high') {
-    return `高清渲染 ${progress.done} / ${progress.total}`;
-  }
-  return `获取卡图 ${progress.done} / ${progress.total}`;
-});
+const generationMessage = computed(() =>
+  `高清渲染 ${progress.done} / ${progress.total}`);
 let parseRequest = 0;
 let suppressedDeckTextValue = null;
 let prereleasePreviewRequest = 0;
@@ -684,7 +677,7 @@ const schedulePrereleasePreviews = () => {
       .filter(id => !generatedImageMap.value.has(id));
     if (!ids.length) return;
     const result = await preparePrintableCards(ids, {
-      mode: 'high',
+      mode: PRINT_RENDER_MODE,
       language: 'sc',
       customCards: customCards.value,
     });
@@ -824,13 +817,6 @@ watch(pageCount, count => {
   currentPage.value = Math.min(currentPage.value, count - 1);
 });
 
-watch(() => settings.mode, mode => {
-  generatedImageMap.value = new Map();
-  if (mode === 'high') {
-    settings.language = 'sc';
-  }
-});
-
 watch(() => settings.language, () => {
   generatedImageMap.value = new Map();
 });
@@ -838,7 +824,6 @@ watch(() => settings.language, () => {
 watch(
   () => [
     selectedCardIds.value.filter(isPrereleaseCardId).join(','),
-    settings.mode,
     settings.language,
   ],
   schedulePrereleasePreviews,
@@ -1000,7 +985,7 @@ const projectSnapshot = () => ({
 const runProjectInspection = async () => {
   if (isInspecting.value) return inspectionIssues.value;
   isInspecting.value = true;
-  deckActionMessage.value = '正在检查项目';
+  deckActionMessage.value = '正在检查卡组';
   try {
     inspectionIssues.value = await inspectDeckProject(projectSnapshot());
     deckActionMessage.value = inspectionIssues.value.length
@@ -1053,7 +1038,7 @@ const saveCurrentProject = async () => {
     externalUpdate.value = null;
     setActiveProjectId(saved.id);
     await refreshProjects();
-    deckActionMessage.value = '项目已保存';
+    deckActionMessage.value = '卡组已保存';
     return saved;
   } catch (error) {
     deckActionMessage.value = error instanceof Error
@@ -1067,7 +1052,7 @@ const duplicateCurrentProject = async () => {
   const saved = await duplicateProject(projectSnapshot());
   await refreshProjects();
   await applyProject(saved);
-  deckActionMessage.value = '已创建项目副本';
+  deckActionMessage.value = '已创建卡组副本';
 };
 
 const applyProject = async project => {
@@ -1078,6 +1063,7 @@ const applyProject = async project => {
   projectName.value = project.name;
   externalUpdate.value = null;
   Object.assign(settings, project.settings || {});
+  settings.mode = PRINT_RENDER_MODE;
   Object.assign(selectedSections, project.selectedSections || {});
   deck.value = {
     main: [...(project.deck?.main || [])],
@@ -1154,12 +1140,12 @@ const importProjectFile = async file => {
   try {
     const imported = parseProject(await file.text());
     if (imported.kind !== 'deck') {
-      throw new Error('这个文件不是卡组项目');
+      throw new Error('这个文件不是卡组备份');
     }
     const saved = await saveProject(imported);
     await refreshProjects();
     await applyProject(saved);
-    deckActionMessage.value = '项目已导入';
+    deckActionMessage.value = '卡组已导入';
   } catch (error) {
     parseError.value = error instanceof Error ? error.message : String(error);
   }
@@ -1316,7 +1302,7 @@ const downloadYdk = () => {
   downloadBlob(blob, `${getDeckFilenameStem()}.ydk`);
   const customCount = flattenDeck(deck.value).filter(isCustomCardId).length;
   deckActionMessage.value = customCount
-    ? `YDK 已下载；${customCount} 张原创卡仅保留在工作台项目中`
+    ? `YDK 已下载；${customCount} 张原创卡仅保留在卡组备份中`
     : 'YDK 已下载';
 };
 
@@ -1337,7 +1323,7 @@ const copyYdke = async () => {
 
 const getPdfFilename = () => {
   const date = new Date().toISOString().slice(0, 10);
-  return `${getDeckFilenameStem()}-${settings.mode}-${date}.pdf`;
+  return `${getDeckFilenameStem()}-${PRINT_RENDER_MODE}-${date}.pdf`;
 };
 
 const resolveDeckNames = async () => {
@@ -1396,8 +1382,8 @@ const createPrintablePdfBlob = async () => {
   progress.done = 0;
   progress.total = new Set(selectedCardIds.value).size;
   const result = await preparePrintableCards(selectedCardIds.value, {
-    mode: settings.mode,
-    language: previewLanguage.value,
+    mode: PRINT_RENDER_MODE,
+    language: 'sc',
     customCards: customCards.value,
     onProgress: value => {
       progress.done = value.done;
@@ -1430,7 +1416,7 @@ const generatePdf = async () => {
     return;
   }
   if (!await ensureProjectReady()) {
-    completedMessage.value = '项目检查未通过，请先修复错误';
+    completedMessage.value = '卡组检查未通过，请先修复错误';
     return;
   }
   isGenerating.value = true;
@@ -1464,7 +1450,7 @@ const generatePdf = async () => {
 const generateDeliveryZip = async () => {
   if (!canGenerate.value || isGenerating.value) return;
   if (!await ensureProjectReady()) {
-    completedMessage.value = '项目检查未通过，请先修复错误';
+    completedMessage.value = '卡组检查未通过，请先修复错误';
     return;
   }
   isGenerating.value = true;
@@ -1960,42 +1946,45 @@ label {
   font-size: 8px;
 }
 
-.mode-switch {
+.render-policy {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 28px 1fr;
+  align-items: stretch;
   border: 1px solid var(--strong-line);
   border-radius: 4px;
   overflow: hidden;
 }
 
-.mode-switch button {
+.render-policy > div {
   min-width: 0;
   padding: 11px 8px;
-  border: 0;
   color: var(--muted);
   background: var(--paper);
-  cursor: pointer;
+  text-align: center;
 }
 
-.mode-switch button + button {
-  border-left: 1px solid var(--strong-line);
+.render-policy > svg {
+  align-self: center;
+  justify-self: center;
+  color: var(--muted);
 }
 
-.mode-switch button.active {
+.render-policy > .render-policy__output {
   color: white;
   background: var(--ink);
 }
 
-.mode-switch span,
-.mode-switch small {
+.render-policy strong,
+.render-policy small {
   display: block;
 }
 
-.mode-switch span {
+.render-policy strong {
   font-weight: 700;
 }
 
-.mode-switch small {
+.render-policy small {
+  margin-bottom: 3px;
   margin-top: 3px;
   font-size: 10px;
   opacity: 0.7;

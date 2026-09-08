@@ -1,11 +1,11 @@
 <template>
-  <section class="project-bar" aria-label="本地项目">
+  <section class="project-bar" :aria-label="`本地${entityName}`">
     <select
       :value="projectId"
-      aria-label="选择本地项目"
+      :aria-label="`选择本地${entityName}`"
       @change="$emit('select', $event.target.value)"
     >
-      <option value="">临时项目</option>
+      <option value="">临时{{ entityName }}</option>
       <option v-for="project in projects" :key="project.id" :value="project.id">
         {{ project.name }}
       </option>
@@ -13,19 +13,19 @@
     <input
       :value="name"
       type="text"
-      aria-label="项目名称"
-      :placeholder="namePlaceholder"
+      :aria-label="`${entityName}名称`"
+      :placeholder="namePlaceholder || `${entityName}名称`"
       @input="$emit('rename', $event.target.value)"
     >
-    <button type="button" title="新建项目" @click="$emit('create')">
+    <button type="button" :title="`新建${entityName}`" @click="$emit('create')">
       <Icon icon="ri:file-add-line" />
     </button>
-    <button type="button" title="保存项目" @click="$emit('save')">
+    <button type="button" :title="`保存${entityName}`" @click="$emit('save')">
       <Icon icon="ri:save-3-line" />
     </button>
     <button
       type="button"
-      title="创建项目副本"
+      :title="`创建${entityName}副本`"
       :disabled="!projectId"
       @click="$emit('duplicate')"
     >
@@ -33,19 +33,19 @@
     </button>
     <button
       type="button"
-      title="导出项目"
+      :title="`导出${entityName}`"
       :disabled="!projectId"
       @click="$emit('export')"
     >
       <Icon icon="ri:archive-line" />
     </button>
-    <button type="button" title="导入项目" @click="fileInput?.click()">
+    <button type="button" :title="`导入${entityName}`" @click="fileInput?.click()">
       <Icon icon="ri:folder-open-line" />
     </button>
     <button
       class="danger"
       type="button"
-      title="删除项目"
+      :title="`删除${entityName}`"
       :disabled="!projectId"
       @click="$emit('remove')"
     >
@@ -62,15 +62,17 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { Icon } from '@iconify/vue';
 
-defineProps({
+const props = defineProps({
   projectId: { type: String, default: '' },
   name: { type: String, default: '' },
-  namePlaceholder: { type: String, default: '项目名称' },
+  namePlaceholder: { type: String, default: '' },
+  entityLabel: { type: String, default: '内容' },
   projects: { type: Array, default: () => [] },
 });
+const entityName = computed(() => props.entityLabel.trim() || '内容');
 
 const emit = defineEmits([
   'select',
