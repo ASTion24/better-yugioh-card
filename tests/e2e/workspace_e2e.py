@@ -15,6 +15,14 @@ ARTIFACTS = ROOT / ".runtime" / "e2e"
 BASE_URL = os.environ.get("E2E_BASE_URL", "http://localhost:5174")
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 ARTWORK = ROOT / "src" / "assets" / "image" / "blue-eyes.jpg"
+FULL_CARD_MONSTER = (
+    ROOT / "src" / "assets" / "yugioh-card" /
+    "yugioh" / "image" / "card-normal.png"
+)
+FULL_CARD_SPELL = (
+    ROOT / "src" / "assets" / "yugioh-card" /
+    "yugioh" / "image" / "card-spell.png"
+)
 PRERELEASE_CARD_ID = 101307001
 
 
@@ -374,6 +382,107 @@ with sync_playwright() as playwright:
     custom_pdf = ARTIFACTS / "custom-card.pdf"
     download_info.value.save_as(custom_pdf)
     assert custom_pdf.read_bytes().startswith(b"%PDF")
+
+    temporary_input = page.get_by_label("上传临时整卡图")
+    temporary_input.set_input_files([
+        {
+            "name": "临时怪兽.png",
+            "mimeType": "image/png",
+            "buffer": FULL_CARD_MONSTER.read_bytes(),
+        },
+        {
+            "name": "临时魔法.png",
+            "mimeType": "image/png",
+            "buffer": FULL_CARD_SPELL.read_bytes(),
+        },
+    ])
+    page.wait_for_function(
+        "() => document.querySelector('.deck-message')?.textContent"
+        ".includes('已加入 2 张临时整卡图')",
+        timeout=30_000,
+    )
+    temporary_monster = page.locator(".deck-card-tile").filter(
+        has_text="临时怪兽",
+    )
+    temporary_spell = page.locator(".deck-card-tile").filter(
+        has_text="临时魔法",
+    )
+    temporary_monster.wait_for()
+    temporary_spell.wait_for()
+    assert temporary_monster.locator(".temporary-image-badge").count() == 1
+    assert temporary_spell.locator(".temporary-image-badge").count() == 1
+    wait_for_data_image(page, temporary_monster.locator("img"))
+    wait_for_data_image(page, temporary_spell.locator("img"))
+    assert temporary_monster.locator("img").evaluate(
+        "(image) => image.naturalWidth === 1394 && image.naturalHeight === 2031"
+    )
+    temporary_monster.get_by_title("增加一张").click()
+    assert temporary_monster.locator(".card-count-badge").inner_text() == "×2"
+
+    temporary_queue = page.locator(".print-queue article").filter(
+        has_text="临时怪兽",
+    )
+    temporary_queue.wait_for()
+    assert temporary_queue.locator("output").inner_text() == "1"
+    temporary_queue.get_by_title("增加打印份数").click()
+    assert temporary_queue.locator("output").inner_text() == "2"
+    page.wait_for_function(
+        """name => {
+            const tile = [...document.querySelectorAll('.deck-card-tile')]
+                .find(item => item.textContent.includes(name));
+            const source = tile?.querySelector('img')?.src;
+            return source?.startsWith('data:image/png') &&
+                [...document.querySelectorAll('.card-slot img')]
+                    .some(image => image.src === source);
+        }""",
+        arg="临时怪兽",
+        timeout=30_000,
+    )
+    page.wait_for_function(
+        """() => new Promise((resolve, reject) => {
+            const request = indexedDB.open('yugioh-card-workspace');
+            request.onsuccess = () => {
+                const database = request.result;
+                const transaction = database.transaction(
+                    'projects',
+                    'readonly'
+                );
+                const read = transaction.objectStore('projects').getAll();
+                read.onsuccess = () => {
+                    const count = read.result
+                        .flatMap(project => Object.values(
+                            project.customCards || {}
+                        ))
+                        .filter(card =>
+                            card.assetType === 'full-card-image' &&
+                            card.data?.image?.startsWith('data:image/png')
+                        ).length;
+                    database.close();
+                    resolve(count >= 2);
+                };
+                read.onerror = () => reject(read.error);
+            };
+            request.onerror = () => reject(request.error);
+        })""",
+        timeout=30_000,
+    )
+    with page.expect_download(timeout=180_000) as download_info:
+        page.get_by_role("button", name="生成打印 PDF").click()
+    temporary_pdf = ARTIFACTS / "temporary-card-images.pdf"
+    download_info.value.save_as(temporary_pdf)
+    assert temporary_pdf.read_bytes().startswith(b"%PDF")
+    assert temporary_pdf.stat().st_size > 100_000
+    page.screenshot(
+        path=ARTIFACTS / "temporary-card-images.png",
+        full_page=True,
+    )
+    page.set_viewport_size({"width": 390, "height": 844})
+    assert_no_overflow(page)
+    page.screenshot(
+        path=ARTIFACTS / "temporary-card-images-mobile.png",
+        full_page=True,
+    )
+    page.set_viewport_size({"width": 1440, "height": 1000})
 
     page.get_by_role("button", name="载入示例").click()
     page.wait_for_function(

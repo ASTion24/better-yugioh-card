@@ -58,6 +58,33 @@
         <span>查找</span>
       </button>
     </form>
+    <input
+      ref="fullImageInput"
+      class="visually-hidden"
+      type="file"
+      accept="image/png,image/jpeg,image/webp"
+      aria-label="上传临时整卡图"
+      multiple
+      @change="onFullImageChange"
+    >
+    <button
+      class="full-image-upload"
+      :class="{ dragging: fullImageDragging }"
+      type="button"
+      title="上传可直接打印的完整卡图"
+      :disabled="uploadingFullImages"
+      @click="fullImageInput?.click()"
+      @dragover.prevent="fullImageDragging = true"
+      @dragleave.prevent="fullImageDragging = false"
+      @drop.prevent="onFullImageDrop"
+    >
+      <Icon
+        :icon="uploadingFullImages ? 'ri:loader-4-line' : 'ri:image-add-line'"
+        :class="{ spinning: uploadingFullImages }"
+      />
+      <span>{{ uploadingFullImages ? '正在读取卡图' : '上传临时整卡图' }}</span>
+      <small>PNG / JPG / WebP</small>
+    </button>
     <div class="deck-view-options">
       <label>
         <span>排序</span>
@@ -97,7 +124,14 @@
 
     <p v-if="searchError" class="deck-message error">{{ searchError }}</p>
     <p v-else-if="searchMessage" class="deck-message">{{ searchMessage }}</p>
-    <p v-else-if="actionMessage" class="deck-message">{{ actionMessage }}</p>
+    <p
+      v-if="fullImageMessage"
+      class="full-image-message"
+      :class="{ error: fullImageMessageType === 'error' }"
+    >
+      {{ fullImageMessage }}
+    </p>
+    <p v-if="actionMessage" class="deck-message">{{ actionMessage }}</p>
 
     <div v-if="activeCards.length" class="deck-card-grid">
       <article
@@ -124,6 +158,12 @@
             language="sc"
             :alt="cardDisplayName(card.id)"
           />
+          <span
+            v-if="isFullCardImage(getCustomCard(customCards, card.id))"
+            class="temporary-image-badge"
+          >
+            临时
+          </span>
           <span class="card-count-badge">×{{ card.count }}</span>
         </button>
         <div class="deck-card-identity">
@@ -195,8 +235,9 @@
       <div>
         <strong>{{ selectedCard.name }}</strong>
         <small>{{ selectedCard.number }} · {{ selectedCard.type }}</small>
-        <p>{{ selectedCard.description }}</p>
+        <p v-if="selectedCard.description">{{ selectedCard.description }}</p>
         <button
+          v-if="!selectedCard.fullImage"
           class="edit-card-command"
           type="button"
           @click="$emit('edit-card', {
@@ -218,8 +259,10 @@ import { computed, ref, watch } from 'vue';
 import CardThumbnail from '@/components/CardThumbnail.vue';
 import { resolveCard, resolveSearchResult } from '@/features/cards/card-service';
 import {
+  createFullCardImage,
   customCardToResolved,
   getCustomCard,
+  isFullCardImage,
 } from '@/features/cards/custom-card';
 import {
   getCardArtworkId,
@@ -252,6 +295,7 @@ const emit = defineEmits([
   'create-batch',
   'playtest',
   'edit-card',
+  'add-full-card-images',
 ]);
 
 const sections = [
@@ -266,6 +310,11 @@ const searchResults = ref([]);
 const searchMessage = ref('');
 const searchError = ref('');
 const searching = ref(false);
+const fullImageInput = ref(null);
+const fullImageDragging = ref(false);
+const uploadingFullImages = ref(false);
+const fullImageMessage = ref('');
+const fullImageMessageType = ref('');
 const sortMode = ref('custom');
 const autoSection = ref(true);
 const draggingCard = ref(null);
@@ -276,6 +325,10 @@ const queuedNameIds = new Set();
 const loadingNameIds = new Set();
 const nameQueue = [];
 const NAME_REQUEST_LIMIT = 3;
+const MAX_FULL_IMAGE_FILES = 30;
+const MAX_FULL_IMAGE_BYTES = 15 * 1024 * 1024;
+const MAX_FULL_IMAGE_TOTAL_BYTES = 120 * 1024 * 1024;
+const FULL_CARD_RATIO = 59 / 86;
 let activeNameRequests = 0;
 
 const activeCards = computed(() => {
@@ -334,15 +387,115 @@ const cardDisplayNumber = cardId => {
 const selectedCard = computed(() => {
   const card = resolvedCardMap.value.get(selectedCardId.value);
   if (!card) return null;
+  const customCard = getCustomCard(props.customCards, card.id);
+  const fullImage = isFullCardImage(customCard);
+  const imageMeta = customCard?.imageMeta || {};
   return {
     id: card.id,
     number: cardDisplayNumber(card.id),
     name: card.name,
-    type: card.metadata.text?.types?.split('\n')[0] ||
-      card.rendererData.monsterType || '卡片',
-    description: card.rendererData.description || '暂无效果文本',
+    type: fullImage && imageMeta.width && imageMeta.height
+      ? `临时整卡图 · ${imageMeta.width} × ${imageMeta.height}`
+      : card.metadata.text?.types?.split('\n')[0] ||
+        card.rendererData.monsterType || '卡片',
+    description: fullImage ? '' : card.rendererData.description || '暂无效果文本',
+    fullImage,
   };
 });
+
+const readFileAsDataUrl = file => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(String(reader.result || ''));
+  reader.onerror = () => reject(new Error(`${file.name} 读取失败`));
+  reader.readAsDataURL(file);
+});
+
+const readImageSize = (source, fileName) => new Promise((resolve, reject) => {
+  const image = new Image();
+  image.onload = () => resolve({
+    width: image.naturalWidth,
+    height: image.naturalHeight,
+  });
+  image.onerror = () => reject(new Error(`${fileName} 不是有效图片`));
+  image.src = source;
+});
+
+const createFullImageFromFile = async file => {
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+    throw new Error(`${file.name} 格式不受支持`);
+  }
+  if (file.size > MAX_FULL_IMAGE_BYTES) {
+    throw new Error(`${file.name} 超过 15 MB`);
+  }
+  const source = await readFileAsDataUrl(file);
+  const dimensions = await readImageSize(source, file.name);
+  const name = file.name.replace(/\.[^.]+$/, '').trim() || '未命名临时卡图';
+  return createFullCardImage(source, {
+    name,
+    fileName: file.name,
+    mimeType: file.type,
+    bytes: file.size,
+    ...dimensions,
+  });
+};
+
+const addFullImageFiles = async fileList => {
+  const files = [...(fileList || [])];
+  fullImageDragging.value = false;
+  fullImageMessage.value = '';
+  fullImageMessageType.value = '';
+  if (!files.length || uploadingFullImages.value) return;
+  if (files.length > MAX_FULL_IMAGE_FILES) {
+    fullImageMessage.value = `一次最多上传 ${MAX_FULL_IMAGE_FILES} 张卡图`;
+    fullImageMessageType.value = 'error';
+    return;
+  }
+  const totalBytes = files.reduce((total, file) => total + file.size, 0);
+  if (totalBytes > MAX_FULL_IMAGE_TOTAL_BYTES) {
+    fullImageMessage.value = '本次卡图总大小不能超过 120 MB';
+    fullImageMessageType.value = 'error';
+    return;
+  }
+  uploadingFullImages.value = true;
+  const cards = [];
+  const errors = [];
+  for (const file of files) {
+    try {
+      cards.push(await createFullImageFromFile(file));
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : String(error));
+    }
+  }
+  if (cards.length) {
+    emit('add-full-card-images', {
+      section: activeSection.value,
+      cards,
+    });
+    const irregularCount = cards.filter(card => {
+      const { width, height } = card.imageMeta;
+      return !width || !height ||
+        Math.abs(width / height - FULL_CARD_RATIO) > 0.04;
+    }).length;
+    fullImageMessage.value = `已加入 ${cards.length} 张临时整卡图` +
+      (irregularCount ? ` · ${irregularCount} 张比例将按 59 × 86 mm 适配` : '');
+  }
+  if (errors.length) {
+    fullImageMessage.value = cards.length
+      ? `${fullImageMessage.value} · ${errors.length} 张未加入`
+      : errors[0];
+    fullImageMessageType.value = 'error';
+  }
+  uploadingFullImages.value = false;
+};
+
+const onFullImageChange = async event => {
+  await addFullImageFiles(event.target.files);
+  event.target.value = '';
+};
+
+const onFullImageDrop = event => {
+  addFullImageFiles(event.dataTransfer?.files);
+};
 
 const resolveCardName = async cardId => {
   const customCard = getCustomCard(props.customCards, cardId);
@@ -411,6 +564,10 @@ watch(() => props.customCards, () => {
   allDeckCardIds.value.forEach(cardId => {
     queueCardName(cardId);
   });
+  if (!Object.values(props.customCards).some(isFullCardImage)) {
+    fullImageMessage.value = '';
+    fullImageMessageType.value = '';
+  }
 }, { deep: true });
 
 const searchCards = async () => {
@@ -642,6 +799,59 @@ const dropOnSection = targetSection => {
   cursor: wait;
 }
 
+.visually-hidden {
+  width: 1px;
+  height: 1px;
+  position: absolute;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.full-image-upload {
+  width: 100%;
+  height: 36px;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  margin-top: 7px;
+  padding: 0 10px;
+  border: 1px dashed var(--strong-line);
+  border-radius: 4px;
+  color: var(--ink);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.full-image-upload:hover,
+.full-image-upload.dragging {
+  border-color: var(--teal);
+  color: var(--teal);
+  background: #edf3f0;
+}
+
+.full-image-upload:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.full-image-upload > svg {
+  font-size: 16px;
+}
+
+.full-image-upload span {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.full-image-upload small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
 .deck-search-results {
   max-height: 190px;
   overflow: auto;
@@ -750,6 +960,16 @@ const dropOnSection = targetSection => {
   color: var(--accent);
 }
 
+.full-image-message {
+  margin: 8px 0 0;
+  color: var(--teal);
+  font-size: 10px;
+}
+
+.full-image-message.error {
+  color: var(--accent);
+}
+
 .deck-card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
@@ -807,6 +1027,23 @@ const dropOnSection = targetSection => {
   font-size: 9px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
+}
+
+.temporary-image-badge {
+  min-width: 28px;
+  height: 18px;
+  position: absolute;
+  bottom: 3px;
+  left: 3px;
+  display: grid;
+  place-items: center;
+  padding: 0 5px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 3px;
+  color: white;
+  background: rgba(40, 94, 88, 0.92);
+  font-size: 8px;
+  font-weight: 800;
 }
 
 .deck-card-identity {

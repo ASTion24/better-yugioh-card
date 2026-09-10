@@ -166,6 +166,7 @@
             @create-batch="createBatchDraft"
             @playtest="openPlaytest"
             @edit-card="openCardEditor"
+            @add-full-card-images="addFullCardImages"
           />
           <PrintQueue
             :entries="printQueue"
@@ -470,6 +471,7 @@ import { resolveCard } from './features/cards/card-service';
 import {
   getCustomCard,
   isCustomCardId,
+  isFullCardImage,
 } from './features/cards/custom-card';
 import {
   fetchImageDataUrl,
@@ -1214,6 +1216,7 @@ const undoLastImport = () => {
 };
 
 const openCardEditor = async ({ id, section }) => {
+  if (isFullCardImage(getCustomCard(customCards.value, id))) return;
   const saved = await saveCurrentProject();
   if (!saved) return;
   const url = new URL('../editor/', location.href);
@@ -1231,10 +1234,18 @@ const openPlaytest = async () => {
 
 const createBatchDraft = async () => {
   const ids = [...new Set(flattenDeck(deck.value))];
-  if (!ids.length) return;
+  const editableIds = ids.filter(id =>
+    !isFullCardImage(getCustomCard(customCards.value, id)));
+  const skippedCount = ids.length - editableIds.length;
+  if (!editableIds.length) {
+    deckActionMessage.value = skippedCount
+      ? '临时整卡图无需转为可编辑草稿'
+      : '';
+    return;
+  }
   deckActionMessage.value = '正在生成可编辑草稿';
   try {
-    const cards = await Promise.all(ids.map(async id => {
+    const cards = await Promise.all(editableIds.map(async id => {
       const customCard = getCustomCard(customCards.value, id);
       if (customCard) {
         return createBatchCard(customCard.data, {
@@ -1265,6 +1276,30 @@ const addDeckCard = ({ section, id }) => {
     ...deck.value,
     [section]: [...deck.value[section], String(id)],
   });
+};
+
+const addFullCardImages = ({ section, cards }) => {
+  const targetSection = ['main', 'extra', 'side'].includes(section)
+    ? section
+    : 'main';
+  const validCards = (cards || []).filter(card =>
+    isCustomCardId(card?.id) && isFullCardImage(card));
+  if (!validCards.length) return;
+  const ids = validCards.map(card => card.id);
+  customCards.value = {
+    ...customCards.value,
+    ...Object.fromEntries(validCards.map(card => [card.id, card])),
+  };
+  commitDeckChange({
+    ...deck.value,
+    [targetSection]: [...deck.value[targetSection], ...ids],
+  });
+  printQueue.value = normalizePrintQueue([
+    ...printQueue.value,
+    ...ids.map(id => ({ id, count: 1 })),
+  ]);
+  deckActionMessage.value = `已加入 ${ids.length} 张临时整卡图`;
+  currentPage.value = Math.max(0, pageCount.value - 1);
 };
 
 const setDeckCardCount = ({ section, id, count }) => {
@@ -1342,7 +1377,7 @@ const downloadYdk = () => {
   downloadBlob(blob, `${getDeckFilenameStem()}.ydk`);
   const customCount = flattenDeck(deck.value).filter(isCustomCardId).length;
   deckActionMessage.value = customCount
-    ? `YDK 已下载；${customCount} 张原创卡仅保留在卡组备份中`
+    ? `YDK 已下载；${customCount} 张原创卡或临时卡图仅保留在卡组备份中`
     : 'YDK 已下载';
 };
 
@@ -1352,7 +1387,7 @@ const copyYdke = async () => {
     await navigator.clipboard.writeText(value);
     const customCount = flattenDeck(deck.value).filter(isCustomCardId).length;
     deckActionMessage.value = customCount
-      ? `YDKe 已复制；${customCount} 张原创卡未包含`
+      ? `YDKe 已复制；${customCount} 张原创卡或临时卡图未包含`
       : 'YDKe 已复制';
   } catch {
     suppressedDeckTextValue = value;

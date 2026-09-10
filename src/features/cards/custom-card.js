@@ -1,13 +1,14 @@
 import { isExtraDeckCardType } from '../print/card-adapter.js';
 
 export const CUSTOM_CARD_PREFIX = 'custom:';
+export const FULL_CARD_IMAGE_ASSET_TYPE = 'full-card-image';
 
 const clone = value => JSON.parse(JSON.stringify(value));
 
-const createCustomId = () => {
+const createCustomId = namespace => {
   const value = globalThis.crypto?.randomUUID?.() ||
     `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-  return `${CUSTOM_CARD_PREFIX}${value}`;
+  return `${CUSTOM_CARD_PREFIX}${namespace ? `${namespace}:` : ''}${value}`;
 };
 
 export const isCustomCardId = value =>
@@ -18,7 +19,16 @@ export const getCustomCard = (customCards, id) => {
   return customCards?.[String(id)] || null;
 };
 
+export const isFullCardImage = card =>
+  card?.assetType === FULL_CARD_IMAGE_ASSET_TYPE;
+
+export const getFullCardImageSource = card => {
+  if (!isFullCardImage(card)) return '';
+  return String(card?.data?.image || '');
+};
+
 export const getCustomCardDefaultSection = card => {
+  if (isFullCardImage(card)) return 'main';
   return isExtraDeckCardType(card?.data?.cardType) ? 'extra' : 'main';
 };
 
@@ -35,6 +45,34 @@ export const createCustomCard = (data, options = {}) => {
   };
 };
 
+export const createFullCardImage = (source, options = {}) => {
+  const requestedId = String(options.id || '');
+  const name = String(options.name || '').trim() || '未命名临时卡图';
+  const id = isCustomCardId(requestedId)
+    ? requestedId
+    : createCustomId('image');
+  return {
+    id,
+    name,
+    cardKind: 'image',
+    assetType: FULL_CARD_IMAGE_ASSET_TYPE,
+    sourceCardId: '',
+    data: {
+      name,
+      image: String(source || ''),
+      password: '临时卡图',
+    },
+    imageMeta: {
+      fileName: String(options.fileName || ''),
+      mimeType: String(options.mimeType || ''),
+      width: Math.max(0, Math.trunc(Number(options.width) || 0)),
+      height: Math.max(0, Math.trunc(Number(options.height) || 0)),
+      bytes: Math.max(0, Math.trunc(Number(options.bytes) || 0)),
+    },
+    updatedAt: new Date().toISOString(),
+  };
+};
+
 export const customCardToResolved = card => ({
   id: card.id,
   baseId: card.id,
@@ -43,14 +81,14 @@ export const customCardToResolved = card => ({
   metadata: {
     id: card.id,
     custom: true,
-    text: { types: '原创卡' },
+    text: { types: isFullCardImage(card) ? '临时整卡图' : '原创卡' },
   },
   rendererData: clone(card.data),
   prerelease: false,
   alternateArtwork: false,
   custom: true,
-  renderMode: 'redraw',
-  source: 'custom',
+  renderMode: isFullCardImage(card) ? 'source-image' : 'redraw',
+  source: isFullCardImage(card) ? 'full-card-image' : 'custom',
   defaultSection: getCustomCardDefaultSection(card),
 });
 

@@ -94,3 +94,41 @@ test('deck inspection reports static size, copy and custom-card rules', async ()
   assert.ok(issues.some(item => item.id === 'custom-link:custom:link'));
   assert.ok(issues.some(item => item.id === 'banlist:1'));
 });
+
+test('temporary full-card images bypass editable-card field checks', async () => {
+  const temporaryId = 'custom:image:temporary';
+  const issues = await inspectDeckProject({
+    deck: {
+      main: Array.from({ length: 4 }, () => temporaryId),
+      extra: [],
+      side: [],
+    },
+    customCards: {
+      [temporaryId]: {
+        id: temporaryId,
+        name: '临时整卡图',
+        cardKind: 'image',
+        assetType: 'full-card-image',
+        data: {
+          name: '临时整卡图',
+          image: 'data:image/png;base64,iVBORw0KGgo=',
+          password: '临时卡图',
+        },
+      },
+    },
+    printQueue: [{ id: temporaryId, count: 4 }],
+  });
+
+  assert.equal(
+    issues.some(item => item.id.startsWith('custom-')),
+    false,
+  );
+  assert.equal(
+    issues.some(item => item.id.startsWith('copy-limit:')),
+    false,
+  );
+  assert.equal(
+    issues.some(item => item.id.startsWith('section:')),
+    false,
+  );
+});

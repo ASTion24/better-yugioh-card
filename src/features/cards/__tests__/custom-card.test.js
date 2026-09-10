@@ -3,11 +3,15 @@ import test from 'node:test';
 import {
   addCustomCardsToDeck,
   createCustomCard,
+  createFullCardImage,
   customCardToResolved,
+  getFullCardImageSource,
   getCustomCardDefaultSection,
   isCustomCardId,
+  isFullCardImage,
   writeCustomCardToDeck,
 } from '../custom-card.js';
+import { renderCustomCardThumbnail } from '../custom-card-render.js';
 
 const project = {
   id: 'deck-1',
@@ -77,4 +81,24 @@ test('batch custom cards are added to their inferred sections', () => {
   const updated = addCustomCardsToDeck(project, [main, extra]);
   assert.equal(updated.deck.main.at(-1), main.id);
   assert.equal(updated.deck.extra.at(-1), extra.id);
+});
+
+test('temporary full-card images preserve their original printable source', async () => {
+  const source = 'data:image/png;base64,iVBORw0KGgo=';
+  const card = createFullCardImage(source, {
+    id: 'custom:image:test-card',
+    name: '临时测试卡',
+    fileName: '临时测试卡.png',
+    mimeType: 'image/png',
+    width: 1394,
+    height: 2031,
+    bytes: 4096,
+  });
+
+  assert.equal(isFullCardImage(card), true);
+  assert.equal(getFullCardImageSource(card), source);
+  assert.equal(getCustomCardDefaultSection(card), 'main');
+  assert.equal(card.imageMeta.width, 1394);
+  assert.equal(customCardToResolved(card).source, 'full-card-image');
+  assert.equal(await renderCustomCardThumbnail(card), source);
 });

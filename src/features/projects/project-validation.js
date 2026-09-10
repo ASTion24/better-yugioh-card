@@ -2,6 +2,7 @@ import {
   getCustomCard,
   getCustomCardDefaultSection,
   isCustomCardId,
+  isFullCardImage,
 } from '../cards/custom-card.js';
 import { resolveCard } from '../cards/card-service.js';
 import { flattenPrintQueue } from '../print/print-queue.js';
@@ -19,6 +20,7 @@ const issue = (id, severity, title, detail, fix = null) => ({
 
 const expectedSection = (project, id, resolvedCards) => {
   const custom = getCustomCard(project.customCards, id);
+  if (isFullCardImage(custom)) return '';
   if (custom) return getCustomCardDefaultSection(custom);
   return resolvedCards.get(String(id))?.defaultSection || '';
 };
@@ -99,6 +101,18 @@ export const inspectDeckProject = async (project, options = {}) => {
         id,
       ));
     }
+    if (isFullCardImage(card)) {
+      if (!String(card.data?.image || '').startsWith('data:image/')) {
+        issues.push(issue(
+          `full-image:${id}`,
+          'error',
+          '临时整卡图数据缺失',
+          card.name || id,
+          { type: 'remove-card', id },
+        ));
+      }
+      return;
+    }
     if (!String(card.data?.image || '').trim()) {
       issues.push(issue(
         `custom-image:${id}`,
@@ -169,7 +183,8 @@ export const inspectDeckProject = async (project, options = {}) => {
     copyCounts.set(id, (copyCounts.get(id) || 0) + 1);
   });
   [...copyCounts.entries()]
-    .filter(([, count]) => count > 3)
+    .filter(([id, count]) =>
+      count > 3 && !isFullCardImage(getCustomCard(customCards, id)))
     .forEach(([id, count]) => {
       issues.push(issue(
         `copy-limit:${id}`,

@@ -208,6 +208,45 @@ test('project files preserve single-card template and renderer data', () => {
   assert.equal(parsed.data.name, '原创卡');
 });
 
+test('project files preserve temporary full-card image data', () => {
+  const imageSource = 'data:image/webp;base64,UklGRg==';
+  const temporaryId = 'custom:image:temporary';
+  const parsed = parseProject(serializeProject({
+    kind: 'deck',
+    name: '临时卡图测试',
+    deck: {
+      main: [temporaryId],
+      extra: [],
+      side: [],
+    },
+    customCards: {
+      [temporaryId]: {
+        id: temporaryId,
+        name: '测试整卡图',
+        cardKind: 'image',
+        assetType: 'full-card-image',
+        data: {
+          name: '测试整卡图',
+          image: imageSource,
+          password: '临时卡图',
+        },
+        imageMeta: {
+          fileName: '测试整卡图.webp',
+          mimeType: 'image/webp',
+          width: 680,
+          height: 986,
+          bytes: 128,
+        },
+      },
+    },
+    printQueue: [{ id: temporaryId, count: 2 }],
+  }));
+
+  assert.equal(parsed.customCards[temporaryId].data.image, imageSource);
+  assert.equal(parsed.customCards[temporaryId].assetType, 'full-card-image');
+  assert.equal(parsed.printQueue[0].count, 2);
+});
+
 test('workspace backups preserve project IDs and every workspace kind', () => {
   const projects = [
     {

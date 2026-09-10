@@ -1,3 +1,8 @@
+import {
+  getFullCardImageSource,
+  isFullCardImage,
+} from './custom-card.js';
+
 const renderPromiseMap = new Map();
 
 const renderKey = (card, options) => [
@@ -8,6 +13,13 @@ const renderKey = (card, options) => [
 ].join(':');
 
 export const renderCustomCard = async (card, options = {}) => {
+  if (isFullCardImage(card)) {
+    const source = getFullCardImageSource(card);
+    if (!source.startsWith('data:image/')) {
+      throw new Error('临时整卡图数据无效');
+    }
+    return source;
+  }
   if (!card?.data) {
     throw new Error('原创卡缺少渲染数据');
   }
