@@ -1215,13 +1215,13 @@ with sync_playwright() as playwright:
         has_text="101307001",
     ).locator("img")
     wait_for_data_image(page, deck_thumbnail)
-    wait_for_data_image(page, page.locator(".card-slot img").first)
     page.wait_for_function(
         """() => {
             const image = document.querySelector('.card-slot img');
-            return image?.src.startsWith('data:image/') &&
+            return image?.complete &&
                 image.naturalWidth >= 680 &&
-                image.naturalHeight >= 680;
+                image.naturalHeight >= 680 &&
+                !image.src.includes('!thumb2');
         }""",
         timeout=180_000,
     )
