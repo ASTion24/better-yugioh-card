@@ -476,13 +476,15 @@ const addFullImageFiles = async fileList => {
       return !width || !height ||
         Math.abs(width / height - FULL_CARD_RATIO) > 0.04;
     }).length;
-    fullImageMessage.value = `已加入 ${cards.length} 张临时整卡图` +
-      (irregularCount ? ` · ${irregularCount} 张比例将按 59 × 86 mm 适配` : '');
+    fullImageMessage.value = irregularCount
+      ? `${irregularCount} 张卡图比例将按 59 × 86 mm 适配`
+      : '';
   }
   if (errors.length) {
-    fullImageMessage.value = cards.length
-      ? `${fullImageMessage.value} · ${errors.length} 张未加入`
-      : errors[0];
+    fullImageMessage.value = [
+      fullImageMessage.value,
+      cards.length ? `${errors.length} 张未加入` : errors[0],
+    ].filter(Boolean).join(' · ');
     fullImageMessageType.value = 'error';
   }
   uploadingFullImages.value = false;
